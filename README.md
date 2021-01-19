@@ -3,14 +3,14 @@
 This script is used by KirkpatrickPrice auditors to collect information from Windows hosts.  Unlike many other tools out there, the approach used in this script is "keep it lite":
 * Use only commands that are already built into the operating system -- no installer, no custom libraries
 * Built on PowerShell versions that comes standard with recent Windows operating systems
-* Minimal real-time analysis -- we collect data for off-line analysis and don't report findings during data collection.
+* Minimal real-time analysis -- we collect data for off-line analysis and don't report findings during data collection.  This keeps the dependencies to a minimum and the logic simple, especially important for running the script on production machines.
 
 ## Critical dependencies ##
 * Windows PowerShell 5.1 for Windows 10 or Windows 2016 Server
 * Windows PowerShell 4.0 for Windows 2012 Server
 
 ## Installation
-Installation is as simple as copying or cloning the bash script to your system.
+Installation is as simple as copying or cloning the PowerShell script to your system.
 
 `git clone https://github.com/kirkpatrickprice/windows-audit-script`
 
