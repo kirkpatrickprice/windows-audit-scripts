@@ -17,6 +17,9 @@ Version 0.3.3
   - Replaced "start-transcript" method of capturing results to use "out-file" instead.  Allows for sending short
     status updates to console while sending full command results to the output file.
   - Renamed and moved "Software_InstalledSoftware" to "System_InstalledSoftware"
+Version 0.3.4
+  - Fixed typo in w32tm section
+  - Added "KPWINVersion" to report file
 #>
 
 Clear-Host
@@ -453,7 +456,7 @@ footer -text $section
 
 $section="Time_W32TimeConfig"
   header -text $section
-  $command={ w32tm /query /configuruation /verbose }
+  $command={ w32tm /query /configuration /verbose }
   	Invoke-MyCommand -section $section -command $command
 footer -text $section
 
