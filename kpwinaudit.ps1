@@ -443,7 +443,7 @@ $section="Time_NTPRegistry"
   comment -section $section -text "Two approaches are used to pull time synchronization settings.  The first approach pulls settings directly from the registry."
   comment -section $section -text "The second approach (in the Time_W32TimeConfig section below) uses the w32tm command to pull active configurations."
   comment -section $section -text "Both sources should show similar information.  We may drop the registry method in the future."
-  comment -section $sectoin -text "Registry setting reference: https://docs.microsoft.com/en-us/windows-server/networking/windows-time-service/windows-time-service-tools-and-settings#reference-windows-time-service-registry-entries"
+  comment -section $section -text "Registry setting reference: https://docs.microsoft.com/en-us/windows-server/networking/windows-time-service/windows-time-service-tools-and-settings#reference-windows-time-service-registry-entries"
   $command={ Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Config" -ErrorAction silentlycontinue }
   	Invoke-MyCommand -section $section -command $command
   $command={ Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters" -ErrorAction silentlycontinue }
