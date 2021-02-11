@@ -12,7 +12,15 @@ This script is used by KirkpatrickPrice auditors to collect information from Win
 ## Installation
 Installation is as simple as copying or cloning the PowerShell script to your system.
 
+Git clone:
+
 `git clone https://github.com/kirkpatrickprice/windows-audit-script`
+
+or from PowerShell:
+```
+Invoke-WebRequest -uri https://raw.githubusercontent.com/kirkpatrickprice/windows-audit-scripts/main/kpwinaudit.ps1 -OutFile kpwinaudit.ps1
+Unblock-File .\kpwinaudit.ps1
+```
 
 or click on the script and download the raw file.
 
