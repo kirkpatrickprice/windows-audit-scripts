@@ -26,7 +26,7 @@ Clear-Host
 
 #Requires -RunAsAdministrator
 
-$kpwinauditversion="0.3.3"
+$kpwinauditversion="0.3.4"
 $hn = hostname
 $osname = Get-CimInstance Win32_OperatingSystem -ErrorAction silentlycontinue | Select-Object Caption
 if ($osname -contains "Server") {
