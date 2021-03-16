@@ -2,7 +2,7 @@
 
 This script is used by KirkpatrickPrice auditors to collect information from Windows hosts.  Unlike many other tools out there, the approach used in this script is "keep it lite":
 * Use only commands that are already built into the operating system -- no installer, no custom libraries
-* Built on PowerShell versions that comes standard with recent Windows operating systems
+* Built on PowerShell versions that come standard with recent Windows operating systems
 * Minimal real-time analysis -- we collect data for off-line analysis and don't report findings during data collection.  This keeps the dependencies to a minimum and the logic simple, especially important for running the script on production machines.
 
 ## Critical dependencies ##
@@ -25,7 +25,7 @@ Unblock-File .\kpwinaudit.ps1
 or click on the script and download the raw file.
 
 ## Usage and Results
-Launch a PowerShell windows as Administrator and run:
+Launch a PowerShell window as Administrator and run:
 
 `kpwinaudit.ps1`
 
