@@ -20,6 +20,8 @@ Version 0.3.3
 Version 0.3.4
   - Fixed typo in w32tm section
   - Added "KPWINVersion" to report file
+Version 0.3.5
+  - Removed "get-wmiobject" method from Users_LocalGroups and Users_LocalUserInfo sections to avoid a performance problem on member servers querying the domain controller for data
 #>
 
 Clear-Host
@@ -486,8 +488,8 @@ $section="Users_LocalGroups"
     Invoke-MyCommand -section $section -command $command
   comment -section $section -text "Using WMIObject and Get-LocalUser methods for different OS versions.  If run on a more recent OS, this will display"
   comment -section $section -text "duplicate information to the previous command."
-  $command={ get-wmiobject -class Win32_Group | Select-Object Name, LocalAccount, Domain, Description | Format-Table -AutoSize }
-  	Invoke-MyCommand -section $section -command $command
+#  $command={ get-wmiobject -class Win32_Group | Select-Object Name, LocalAccount, Domain, Description | Format-Table -AutoSize }
+#  	Invoke-MyCommand -section $section -command $command
 footer -text $section
 
 $section="Users_LocalGroupAdministrators"
@@ -507,8 +509,8 @@ $section="Users_LocalUserInfo"
   header -text $section
   comment -section $section -text "Using WMIObject and Get-LocalUser methods for different OS versions.  If run on a more recent OS, this will display"
   comment -section $section -text "duplicate information to the previous command."
-  $command={ Get-WmiObject -Class Win32_UserAccount -ErrorAction silentlycontinue | Select-Object PSComputername, Name, Status, Disabled, LastLogin, MinPasswordLength, MaxPasswordAge, MinPasswordAge, MaxBadPasswordsAllowed, AccountType, Lockout, PasswordRequired, PasswordChangeable | format-table -AutoSize }
-  	Invoke-MyCommand -section $section -command $command
+#  $command={ Get-WmiObject -Class Win32_UserAccount -ErrorAction silentlycontinue | Select-Object PSComputername, Name, Status, Disabled, LastLogin, MinPasswordLength, MaxPasswordAge, MinPasswordAge, MaxBadPasswordsAllowed, AccountType, Lockout, PasswordRequired, PasswordChangeable | format-table -AutoSize }
+#  	Invoke-MyCommand -section $section -command $command
   $command={ Get-Localuser -ErrorAction silentlycontinue | Select-Object name, Fullname, Enabled, LastLogon, UserMayChangePassword, PasswordExpires, PasswordLastSet | Format-Table }
   	Invoke-MyCommand -section $section -command $command
 footer -text $section
