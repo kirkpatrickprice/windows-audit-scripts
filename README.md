@@ -9,6 +9,8 @@ This script is used by KirkpatrickPrice auditors to collect information from Win
 * Windows PowerShell 5.1 for Windows 10 or Windows 2016 Server
 * Windows PowerShell 4.0 for Windows 2012 Server
 
+NOTE: As of version 0.4.0, the `kpwinaudit.ps1` script is signed with an AuthentiCode certificate to provide greater trust that the script has not been tampered with.  This should work with PowerShell execution policies of `RemoteSigned` and `AllSigned` for all version of Windows Server starting with 2012 and Windows 10.  Additionally, `git commits` are also signed and validated by GitHub.  Check the commit message to confirm that the commit is "verified."
+
 ## Installation
 Installation is as simple as copying or cloning the PowerShell script to your system.
 
