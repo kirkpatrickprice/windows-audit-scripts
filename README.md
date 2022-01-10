@@ -9,7 +9,9 @@ This script is used by KirkpatrickPrice auditors to collect information from Win
 * Windows PowerShell 5.1 for Windows 10 or Windows 2016 Server
 * Windows PowerShell 4.0 for Windows 2012 Server
 
-NOTE: As of version 0.4.0, the `kpwinaudit.ps1` script is signed with an Authenticode certificate to provide greater trust that the script has not been tampered with.  This should work with PowerShell execution policies of `RemoteSigned` and `AllSigned` for all version of Windows Server starting with 2012 and Windows 10.  Additionally, `git commits` are also signed and validated by GitHub.  Check the commit message to confirm that the commit is "verified."
+NOTE: As of version 0.4.0, the `kpwinaudit.ps1` script is signed with an Authenticode certificate to provide greater trust that the script has not been tampered with.  This should work with PowerShell execution policies of `RemoteSigned` and `AllSigned` for all version of Windows Server starting with 2012 and Windows 10.  Use `Get-AuthenticodeSignature ./kpwinaudit.ps1` to verify the signature's validity.
+
+Additionally, `git commits` are also signed and validated by GitHub.  Check the commit message to confirm that the commit is "verified."
 
 ## Installation
 Installation is as simple as copying or cloning the PowerShell script to your system.
@@ -21,13 +23,17 @@ Git clone:
 or from PowerShell:
 ```
 Invoke-WebRequest -uri https://raw.githubusercontent.com/kirkpatrickprice/windows-audit-scripts/main/kpwinaudit.ps1 -OutFile kpwinaudit.ps1
-Unblock-File .\kpwinaudit.ps1
+unblock-file ./kpwinaudit.ps1
 ```
 
 or click on the script and download the raw file.
 
 ## Usage and Results
 Launch a PowerShell window as Administrator and run:
+
+`Get-AuthenticodeSignature ./kpwinaudit.ps1`
+
+to check the script's validity (if it reports the status as `HashMismatch` do not run the script and contact your auditor / only run it if it reports `Valid`)
 
 `kpwinaudit.ps1`
 
