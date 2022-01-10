@@ -24,13 +24,73 @@ Version 0.3.5
   - Removed "get-wmiobject" method from Users_LocalGroups and Users_LocalUserInfo sections to avoid a performance problem on member servers querying the domain controller for data
 Version 0.4.0
   - Added Authenticode signature to PowerShell Script
+Version 0.4.1
+  - Added Outfile parameter to control where the output file is written to if the default doesn't work (e.g. if it's saved to a OneDrive folder)
+  - Added help content compatible with Get-Help built-in Powershell command
 #>
+
+<#
+.SYNOPSIS
+    A Windows PowerShell script that collects system configuraiton information for offline auditing
+.DESCRIPTION
+    This script is used by KirkpatrickPrice auditors to collect information from Windows hosts. Unlike many other tools out there, the approach used in this script is "keep it lite":
+
+    - Use only commands that are already built into the operating system -- no installer, no custom libraries
+    - Built on PowerShell versions that come standard with recent Windows operating systems
+    - Minimal real-time analysis -- we collect data for off-line analysis and don't report findings during data collection. This keeps the dependencies to a minimum and the logic simple, especially important for running the script on production machines.
+
+    Dependencies:
+    - Windows PowerShell 5.1 for Windows 10 or Windows Server 2016
+    - Windows PowerShell 4.0 for Windows Server 2012
+
+    NOTE: This script is signed by KirkpatrickPrice using an Authenticode signature.  Use "Get-AuthenticodeSignature .\kpwinaudit.ps1" to confirm the validity of the signature.
+.PARAMETER OutPath
+    The path to use for the output file.  
+    
+    If not specified, the default is to place it on the user's Desktop, but this might not work on OneDrive-synced folders.  You can override default by specifying a path here.
+
+    NOTE: This path is not validated, but if it doesn't exist, PowerShell will throw errors indicating that it couldn't write to the outfile.
+
+.EXAMPLE
+    Default run without any parameters.  Output file goes to the users' desktop.
+    
+    ./kpwinaudit.ps1
+
+.EXAMPLE
+    Overriding the destination folder with -OutPath
+
+    ./kpwinaudit.ps1 -OutPath ..\
+
+    This will put the output file in the parent folder of the current working folder.
+
+.LINK
+    https://github.com/kirkpatrickprice/windows-audit-scripts
+
+.NOTES
+    Author: Randy Bartels
+    Official location: https://github.com/kirkpatrickprice/windows-audit-scripts
+
+#>
+
+[CmdletBinding()]
+
+param(
+    [Parameter(
+            ParameterSetName='ParameterSet1',
+            Mandatory=$False,
+            Position=0,
+            ValueFromPipeline=$true,
+            HelpMessage="The path to use for the output file.  Default is to place it on the user's Desktop, but this might not work on OneDrive-synced folders"
+            )
+    ]
+    [string]$OutPath
+)
 
 Clear-Host
 
 #Requires -RunAsAdministrator
 
-$kpwinauditversion="0.4.0"
+$kpwinauditversion="0.4.1"
 $hn = hostname
 $osname = Get-CimInstance Win32_OperatingSystem -ErrorAction silentlycontinue | Select-Object Caption
 if ($osname -contains "Server") {
@@ -38,9 +98,15 @@ if ($osname -contains "Server") {
 } else {
   $systemtype="Desktop"
 }
-$outfile="$home\Desktop\$hn.txt"
-write-host "Sending output to $outfile"
-Remove-Item -Path $outfile  
+if ( $OutPath ) {
+    $Outfile="$OutPath\$hn.txt"
+} else {
+    $Outfile="$home\Desktop\$hn.txt"
+}
+
+
+write-host "Sending output to $Outfile"
+Remove-Item -Path $Outfile  
 
 function header {
   param (
@@ -49,7 +115,7 @@ function header {
 
   Process {
     write-host "Processing: $text" -ForegroundColor red
-    "$text:: ###[BEGIN]" | Out-File -FilePath $outfile -Append
+    "$text:: ###[BEGIN]" | Out-File -FilePath $Outfile -Append
 
   }
 }
@@ -59,7 +125,7 @@ function footer {
     [string]$text
   )
   Process {
-    "$text:: ###[END]" | Out-File -FilePath $outfile -Append
+    "$text:: ###[END]" | Out-File -FilePath $Outfile -Append
   }
 }
 
@@ -70,7 +136,7 @@ function comment {
   )
 
   Process {
-    "$section:: ###$text" | Out-File -FilePath $outfile -Append
+    "$section:: ###$text" | Out-File -FilePath $Outfile -Append
   }
 }
 
@@ -83,11 +149,11 @@ function Invoke-MyCommand {
   Process {
     $errorCount = $error.count
 #    write-host "$section:: Processing Command: $command" -ForegroundColor Red
-    "$section:: ###Processing Command: $command" | Out-File -FilePath $outfile -Append
+    "$section:: ###Processing Command: $command" | Out-File -FilePath $Outfile -Append
     Invoke-Command -ScriptBlock $command -ErrorAction SilentlyContinue | Out-String -stream | ForEach-Object {
-      "$section:: $_" | Out-File -FilePath $outfile -Append 
+      "$section:: $_" | Out-File -FilePath $Outfile -Append 
       if ($error.count -gt $errorCount ) {
-        "$section:: Error processing command" | Out-File -FilePath $outfile -Append
+        "$section:: Error processing command" | Out-File -FilePath $Outfile -Append
         write-debug "$error"
       }
     }
