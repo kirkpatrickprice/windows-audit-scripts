@@ -39,6 +39,12 @@ Version 0.4.2
   - Renamed Time_NTPRegistry to Time_W32TimeRegistry to more accurately reflect Microsoft documentation.
   - Added option to start the W32Time service (or to prompt the user if they didn't specify if on the command line).  This greatly increases the quality of the 
     Time Service checks using the w32tm command.  The scripted prompt will assume "YES" in 30 seconds.
+Version 0.4.3
+  - System_BitLockerStatus: Added test to see if Get-BitLockerVolume command is present (e.g., not installed on some server versions)
+  - Users_LocalAdministrator: Added test to see if Get-LocalUser command is presnet.  Fallback to Get-WmiObject if not.  
+  - System_InstalledCapabilities: Added ttest to see if Get-WindowsCapability is present (e.g. not installed on some server versions)
+  - Time_W32TimeLogs: Added alternate command for Windows 2012 servers
+  - System_WindowsUpdateConfig: Improved collection of WU-related registry keys, including when using Configuration Service Providers such as Intune
 #>
 
 <#
@@ -73,23 +79,21 @@ Version 0.4.2
     Starting the Time Service should have no effect on a running system, but the script will also stop the service again if it started it.
 
 .EXAMPLE
-    Default run without any parameters.  Output file goes to the users' desktop.
+    Default run without any parameters.  Output file goes to the users' desktop.  User will be prompted to enable Windows Time Service.
     
     ./kpwinaudit.ps1
 
 .EXAMPLE
     Overriding the destination folder with -OutPath
 
-    ./kpwinaudit.ps1 -OutPath ..\
+    ./kpwinaudit.ps1 -OutPath .\
 
-    This will put the output file in the parent folder of the current working folder.
+    This will put the output file in the current working folder.
 
 .EXAMPLE
     Allow the script to start the W32Time Service.
 
     ./kpwinaudit.ps1 -StartTimeService
-
-    This will put the output file in the parent folder of the current working folder.
 
 .LINK
     https://github.com/kirkpatrickprice/windows-audit-scripts
@@ -119,10 +123,10 @@ Clear-Host
 
 #Requires -RunAsAdministrator
 
-$KPWINVERSION="0.4.2"
+$KPWINVERSION="0.4.3"
 $hn = hostname.exe
-#Width to use for the outfile
-$OutWidth=160
+#Width to use for the outfile / setting high to avoid line truncation "..."
+$OutWidth=512
 
 #Set up the output path.  If we specify the OutPath variable on the command line, use that.  Otherwise, use the desktop
 #In both cases, check that the provided path is usable and throw an error if it's not.
@@ -193,7 +197,7 @@ function Invoke-MyCommand {
         $errorCount = $error.count
     #    write-host "$section:: Processing Command: $command" -ForegroundColor Red
         "$section:: ###Processing Command: $command" | Out-File -FilePath $Outfile -Append -width $OutWidth
-        Invoke-Command -ScriptBlock $command -ErrorAction SilentlyContinue | Out-String -stream | ForEach-Object {
+        Invoke-Command -ScriptBlock $command -ErrorAction SilentlyContinue | Out-String -stream -Width $Outwidth | ForEach-Object {
             #Only print lines that have alpha/numeric/punction
             if ($_.Length -match "[A-Za-z0-9,.]") {
                 "$section::$_" | Out-File -FilePath $Outfile -Append -width $OutWidth
@@ -346,7 +350,16 @@ $section="Script_Init"
         "Server 2016"   {$systemtype="Server2016"}
         "Server 2012"   {$systemtype="Server2012"}
         "Windows 10"    {$systemtype="Windows10"}
-        default         {$systemtype="Unsupported"}
+        default         {
+                            $systemtype="Unsupported"
+                            Write-Host "Operating system type is not supported by the script.  Supported systems include Windows 10, Server 2012, Server 2016, Server 2019 and Server 2022."
+                            Write-Host "We will continue with the tests in case we can collect some useful information.  Please report the following to your KP auditor:"
+                            Write-Host
+                            write-host "OSName: $($osname.caption)"
+                            $PSVersionTable
+                            $PSScriptRoot
+                            Read-host -Prompt "Press any key to continue..."
+                        }
     }
 
     comment -section $section -text "System type is detected as $systemtype."
@@ -388,20 +401,20 @@ _  ___      _                _        _      _    ____       _
 $section="DateTime"
     header -text $section
     $command={ Get-Date -Format g }
-        Invoke-MyCommand -section $section -command $command -commandroot $commandroot
+        Invoke-MyCommand -section $section -command $command
 footer -text $section
 
 $section="System_PSDetails"
     header -text $section
     comment -section $section -text "Provide details on the PowerShell environment.  Mostly used for troubleshooting if something doesn't work."
     $command={ "KPWINVERSION: $KPWINVERSION" }
-        Invoke-MyCommand -section $section -command $command -commandroot $commandroot
+        Invoke-MyCommand -section $section -command $command
     $command={ $PSVersionTable }
-        Invoke-MyCommand -section $section -command $command -commandroot $commandroot
+        Invoke-MyCommand -section $section -command $command
     $command={ $home }
-        Invoke-MyCommand -section $section -command $command -commandroot $commandroot
+        Invoke-MyCommand -section $section -command $command
     $command={ $PSScriptRoot }
-        Invoke-MyCommand -section $section -command $command -commandroot $commandroot
+        Invoke-MyCommand -section $section -command $command
 
 $section="System_Hostname"
     header -text $section
@@ -425,8 +438,15 @@ $section="System_BitLockerStatus"
     header -text $section
     comment -section $section -text "Capture the BitLocker status of each disk drive attached to the system.  This can be used to confirm statements such as 'All drives are encrypted with BitLocker.'"
     comment -section $section -text "Compare the results against the next section ('System_Disks') to see if any of the disks are Thumb Drives, FAT32, etc."
-    $command={ Get-BitLockerVolume | Select-Object MountPoint, EncryptionMethod, AutoUnlock*, KeyProtector, *Status, EncryptionPercentage | format-table -Autosize }
-        Invoke-MyCommand -section $section -command $command
+    #Test if the Get-BitLockerCommand is present.  If it is, run the test.  Otherwise, make a comment that we couldn't do it.
+    try {
+        if(Get-Command Get-BitLockerVolume -ErrorAction Stop) { 
+            $command={ Get-BitLockerVolume | Select-Object MountPoint, EncryptionMethod, AutoUnlock*, KeyProtector, *Status, EncryptionPercentage | format-table -Autosize }
+            Invoke-MyCommand -section $section -command $command
+        }
+    } catch {
+        comment -section $section -text "Get-BitLockerVolume command not found.  Skipping test."
+    }
 footer -text $section
 
 $section="System_Disks"
@@ -447,8 +467,14 @@ $section="System_InstalledCapabilities"
     header -text $section
     comment -section $section -text "Between System_InstalledCapabilities, System_InstalledFeatured, and System_InstalledSoftware, we collect a complete list of installed software -- from Microsoft and others."
     comment -section $section -text "Windows Capabilities include such things as an OpenSSH client, Notepad and Internet Explorer."
-    $command={ Get-WindowsCapability -online | Where-Object {$_.State -ne 'NotPresent'} | format-table -autosize }
-        Invoke-MyCommand -section $section -command $command
+    try {
+        if(Get-Command Get-WindowsCapability -ErrorAction Stop) { 
+            $command={ Get-WindowsCapability -online | Where-Object {$_.State -ne 'NotPresent'} | format-table -autosize }
+            Invoke-MyCommand -section $section -command $command
+        }
+    } catch {
+        comment -section $section -text "Get-WindowsCapability command not found.  Skipping test."
+    }
 footer -text $section
 
 $section="System_InstalledFeatures"
@@ -476,6 +502,16 @@ $section="System_InstalledHotfixes"
         Invoke-MyCommand -section $section -command $command
 footer -text $section
 
+$section="System_InstalledSoftware"
+    header -text $section
+    comment -section $section -text "Between System_InstalledCapabilities, System_InstalledFeatured, and System_InstalledSoftware, we collect a complete list of installed software -- from Microsoft and others."
+    comment -section $section -text "System_InstalledSoftware provides a list of all software installed including from 3rd party sources."
+    comment -section $section -text "For 3rd party software, check each product to make sure that versions are reasonably maintained."
+
+    $command={ Get-ItemProperty "HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction silentlycontinue | Select-Object DisplayName, DisplayVersion, Publisher, InstallDate | format-table -Autosize }
+        Invoke-MyCommand -section $section -command $command
+footer -text $section
+
 $section="System_PendingWindowsUpdates"
     header -text $section
     comment -section $section -text "System_PendingWindowsUpdates captures the results of an attempt to run Windows Update.  It will work identically to running the WU Control Panel, including using WSUS servers if configured."
@@ -500,17 +536,7 @@ $section="System_PendingWindowsUpdates"
     $command={ "Found $($updates.Count) updates!" }
         Invoke-MyCommand -section $section -command $command
     #Print the results and interesting fields in a table
-    $command={ $updates | Format-Table Title, LastDeploymentChangeTime, AutoSelectOnWebSites, IsHidden, IsMandatory }
-        Invoke-MyCommand -section $section -command $command
-footer -text $section
-
-$section="System_InstalledSoftware"
-    header -text $section
-    comment -section $section -text "Between System_InstalledCapabilities, System_InstalledFeatured, and System_InstalledSoftware, we collect a complete list of installed software -- from Microsoft and others."
-    comment -section $section -text "System_InstalledSoftware provides a list of all software installed including from 3rd party sources."
-    comment -section $section -text "For 3rd party software, check each product to make sure that versions are reasonably maintained."
-
-    $command={ Get-ItemProperty "HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction silentlycontinue | Select-Object DisplayName, DisplayVersion, Publisher, InstallDate | format-table -Autosize }
+    $command={ $updates | Format-Table Title, LastDeploymentChangeTime, AutoSelectOnWebSites, IsHidden, IsMandatory -Autosize }
         Invoke-MyCommand -section $section -command $command
 footer -text $section
 
@@ -585,7 +611,7 @@ footer -text $section
 
 $section="System_ScheduledTaskInfo"
     header -text $section
-    $command={ Get-ScheduledTask -ErrorAction silentlycontinue | where-object state -eq "ready" | Get-ScheduledTaskInfo | Select-Object Taskname, LastRunTime, LastTaskResult, NumberOfMissedRuns, NextRunTime | sort-object -property LastRunTime -desc | format-list }
+    $command={ Get-ScheduledTask -ErrorAction silentlycontinue | where-object state -eq "ready" | Get-ScheduledTaskInfo | Select-Object Taskname, LastRunTime, LastTaskResult, NumberOfMissedRuns, NextRunTime | sort-object -property LastRunTime -desc | format-table -AutoSize }
         Invoke-MyCommand -section $section -command $command
 footer -text $section
 
@@ -627,7 +653,16 @@ $section="System_WindowsUpdateConfig"
     comment -section $section -text "  5 - Automatic updates are required with some user configurability"
     comment -section $section -text "NoAutoUpdate=1 disables automatic updates altogether"
     comment -section $section -text "If the following registry paths are not found, then system updates are managed through another method (e.g. MDM)"
-    $command={ Get-ItemProperty -path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -ErrorAction SilentlyContinue }
+    $command={ Get-ItemProperty -path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -ErrorAction SilentlyContinue | format-list }
+        Invoke-MyCommand -section $section -command $command
+    comment -section $section -text "Here are some additional settings that might be useful, especially if the previous command didn't return any results"
+    $command={ Get-ItemProperty -path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" -ErrorAction SilentlyContinue | format-list }
+        Invoke-MyCommand -section $section -command $command
+    $command={ Get-ItemProperty -path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\AutoUpdate" -ErrorAction SilentlyContinue | format-list }
+        Invoke-MyCommand -section $section -command $command
+    comment -section $section -text "This registry section seems to be related to Intune MDM and maybe with other Configuration Service Providers"
+    comment -section $section -text "See https://docs.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update for interpretation"
+    $command={ Get-ItemProperty -path "HKLM:\SOFTWARE\Microsoft\PolicyManager\current\device\Update" -ErrorAction SilentlyContinue | format-list }
         Invoke-MyCommand -section $section -command $command
 footer -text $section
 
@@ -809,10 +844,22 @@ $section="Time_W32TimeLogs"
     comment -section $section -text "Reference: https://docs.microsoft.com/en-us/windows-server/networking/windows-time-service/windows-time-for-traceability"
     comment -section $section -text "NOTE:  As with harvesting all Windows Event Logs using other tools such as Splunk, the first step is to write the event to Event Log.  Harvesting tools will"
     comment -section $section -text "       collect events from there.  If the events aren't written to Event Log, they won't be harvested to centralized log management tools for archive/retention."
-    $command={ Get-WinEvent -LogName "Microsoft-Windows-Time-Service/Operational" -MaxEvents 100 -ErrorAction SilentlyContinue | format-table -Autosize }
-        Invoke-MyCommand -section $section -command $command
+    switch -regex ($systemtype) {
+        'Server20(16|19|22)|Windows10' {
+            $command={ Get-WinEvent -LogName "Microsoft-Windows-Time-Service/Operational" -MaxEvents 100 -ErrorAction SilentlyContinue | format-table -Autosize }
+        }
+        'Server2012' {
+            $command={ Get-EventLog -LogName "System" -Newest 50 -Source "Microsoft-Windows-Time-Service" -ErrorAction SilentlyContinue | format-table -AutoSize }
+        }
+        Default {
+            comment -section $section -text "Unsupported OS detected.  Test skipped."
+            $command={}
+        }
+    }
+    Invoke-MyCommand -section $section -command $command
 footer -text $section
 
+#Disable the Windows Time Service if we started it.
 if ($ScriptStartedTimeService -eq $true) {
     $TimeServiceStatus=Get-Service W32Time
     $Count=1
@@ -834,8 +881,16 @@ if ($ScriptStartedTimeService -eq $true) {
 $section="Users_LocalAdministrator"
     header -text $section
     comment -section $section -text "Provide information on the local administrator.  We query for the user SID that ends in ""-500"" in case the default ""Administrator"" user has been renamed."
-    $command={ Get-LocalUser -ErrorAction SilentlyContinue | Select-Object * | Where-Object {$_.SID -like "S-1-5-*-500"} }
-        Invoke-MyCommand -section $section -command $command
+    try {
+        if(Get-Command Get-LocalUser -ErrorAction Stop) { 
+            comment -section $section -text "Running Get-LocalUser to get local Admin info."
+            $command={ Get-LocalUser -ErrorAction SilentlyContinue | Select-Object * | Where-Object {$_.SID -like "S-1-5-*-500"} }
+        }
+    } catch {
+        comment -section $section -text "Get-LocalUser command not found.  Running get-wmiobject to get local users."
+        $command={ get-wmiobject -class Win32_UserAccount -Filter "LocalAccount=True" -ErrorAction SilentlyContinue | Select-Object Name, FullName, Caption, PasswordChangeable, PasswordRequired, SID | Where-Object {$_.SID -like "S-1-5-*-500" } | format-list }
+    }
+    Invoke-MyCommand -section $section -command $command
 footer -text $section
 
 $section="Users_LocalGroupAdministrators"
@@ -939,7 +994,7 @@ footer -text $section
 $section="Logging_AuditEventsConfig"
     header -text $section
     comment -section $section -text "Provides a detailed report of the events that will be captured by the local Windows Event Log service."
-    $command={ auditpol.exe /get /category:"*" }
+    $command={ auditpol.exe /get /category:"*" | format-list }
         Invoke-MyCommand -section $section -command $command
 footer -text $section
 
@@ -982,8 +1037,8 @@ footer -text $section
 # SIG # Begin signature block
 # MIIOZgYJKoZIhvcNAQcCoIIOVzCCDlMCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUYsRjATdm/AV4DSW+4UFdvj7K
-# ojygggw/MIIDeTCCAv6gAwIBAgIQHM+dZ83iGf8S2Zr/NoLlpzAKBggqhkjOPQQD
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3SGEv4J7gztidAEtWq7IZ9TZ
+# s+mgggw/MIIDeTCCAv6gAwIBAgIQHM+dZ83iGf8S2Zr/NoLlpzAKBggqhkjOPQQD
 # AzB8MQswCQYDVQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0
 # b24xGDAWBgNVBAoMD1NTTCBDb3Jwb3JhdGlvbjExMC8GA1UEAwwoU1NMLmNvbSBS
 # b290IENlcnRpZmljYXRpb24gQXV0aG9yaXR5IEVDQzAeFw0xOTAzMDcxOTM1NDda
@@ -1054,7 +1109,7 @@ footer -text $section
 # YXRlIENBIEVDQyBSMgIQYnyT6ulolooh0mGI8Cl9DzAJBgUrDgMCGgUAoHgwGAYK
 # KwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIB
 # BDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-# HztxQcQVIhQ36mk2Jh8vda8l12QwCwYHKoZIzj0CAQUABGcwZQIxANlhTyhEG90j
-# l9wo+DyQ9M03XcsmrSUVaRTlMyI6SITyv+sy1aP+F9Od1DuZCu75CQIwFrHCeoxP
-# KnfPVleGwXCI6JMj/AeP6r/C5y0tDC4rP+3bA3FHfbjasSmX9YqZJKBr
+# q7cyYK3Np2WZRrB2T7H66XLDbf0wCwYHKoZIzj0CAQUABGcwZQIxAKpwKD9ZkOKg
+# zRjwOyFsCeKPgBPcPnVxw/hQGjuld65VgqXQ/iyJZ87nISslw3HbHQIwbGKSStbp
+# TTDxSyDaWxuep6vBvbi+ykaSJiROYXY7PFZ2XZIHh2MOmSONiJx6ZETv
 # SIG # End signature block
