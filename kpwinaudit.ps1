@@ -301,8 +301,7 @@ Function YesNoPrompt($prompt,$secondsToWait){
             $key = $host.ui.RawUI.ReadKey("NoEcho,IncludeKeyUp")
             #Check if either of our keys were pressed
             switch ($key.VirtualKeyCode) {
-                $NoKeyCaps {
-                    write-host "N key pressed"
+                $NoKeyCaps {                    
                     $ReturnVal=$False
                     $ResponseRecd=$True
                     break
@@ -312,33 +311,33 @@ Function YesNoPrompt($prompt,$secondsToWait){
                     $ResponseRecd=$true
                     break
                 }
+                $NoKeySmall {                    
+                    $ReturnVal=$False
+                    $ResponseRecd=$True
+                    break
+                }
+                $YesKeySmall {
+                    $ReturnVal=$True
+                    $ResponseRecd=$true
+                    break
+                }
                 Default {
                     #if none of  our desired keys were preseed, clear the keyboard buffer
                     while ($host.ui.RawUI.KeyAvailable) {
                         $host.UI.RawUI.ReadKey() | Out-Null
                     }    
-                }
-            }
-
-            # if (($key.VirtualKeyCode -eq $NoKeyCaps) -or ($key.VirtualKeyCode -eq $NoKeySmall)) {
-            #     $ReturnVal=$False
-            #     break
-            # } else {
-            #     #if one our desired keys was not preseed, clear the keyboard buffer
-            #     while ($host.ui.RawUI.KeyAvailable) {
-            #         $host.UI.RawUI.ReadKey() | Out-Null
-            #     }
-            # }
-        }
+                }       #End Default
+            }           #End switch
+        }               #End if
         #Increase the counter
         $count++
         if ($count % (1000/$sleeptimer) -eq 0) {
             #If we've counted enough sleep cycles that we're on an even second
             $secondsToWait=$secondsToWait-1
-        }
-    }
+        }               #End if
+    }                   #End while
     return $ReturnVal
-}
+}                       #End function
 
 $section="Script_Init"
     #Get the system type so we can run the correct versions of different commands
@@ -1037,8 +1036,8 @@ footer -text $section
 # SIG # Begin signature block
 # MIIOZgYJKoZIhvcNAQcCoIIOVzCCDlMCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3SGEv4J7gztidAEtWq7IZ9TZ
-# s+mgggw/MIIDeTCCAv6gAwIBAgIQHM+dZ83iGf8S2Zr/NoLlpzAKBggqhkjOPQQD
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUu9xrdly5usL9zGZeEgJreWAv
+# vhygggw/MIIDeTCCAv6gAwIBAgIQHM+dZ83iGf8S2Zr/NoLlpzAKBggqhkjOPQQD
 # AzB8MQswCQYDVQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0
 # b24xGDAWBgNVBAoMD1NTTCBDb3Jwb3JhdGlvbjExMC8GA1UEAwwoU1NMLmNvbSBS
 # b290IENlcnRpZmljYXRpb24gQXV0aG9yaXR5IEVDQzAeFw0xOTAzMDcxOTM1NDda
@@ -1109,7 +1108,7 @@ footer -text $section
 # YXRlIENBIEVDQyBSMgIQYnyT6ulolooh0mGI8Cl9DzAJBgUrDgMCGgUAoHgwGAYK
 # KwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIB
 # BDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-# q7cyYK3Np2WZRrB2T7H66XLDbf0wCwYHKoZIzj0CAQUABGcwZQIxAKpwKD9ZkOKg
-# zRjwOyFsCeKPgBPcPnVxw/hQGjuld65VgqXQ/iyJZ87nISslw3HbHQIwbGKSStbp
-# TTDxSyDaWxuep6vBvbi+ykaSJiROYXY7PFZ2XZIHh2MOmSONiJx6ZETv
+# Hqt4kcRJJEeZhnW+X6Pfd/EOrZswCwYHKoZIzj0CAQUABGcwZQIxAP9CGBWMo/Dc
+# Y7ACYbTRrwPOMLbXqrkMOVfDNqS965+r9JH8pK+a4tY6tdwjms8OsgIwPuBsAkr2
+# Q0d6hJSqdjQlaMNzDBKj/RrxpzmqQP0RBJiadooKGWNF0TPb7fsx3pkq
 # SIG # End signature block
