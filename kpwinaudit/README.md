@@ -22,12 +22,12 @@ Git clone:
 
 or from PowerShell:
 ```
-Invoke-WebRequest -uri https://raw.githubusercontent.com/kirkpatrickprice/windows-audit-scripts/main/kpwinaudit.ps1 -OutFile kpwinaudit.ps1
+Invoke-WebRequest -uri https://raw.githubusercontent.com/kirkpatrickprice/windows-audit-scripts/main/kpwinaudit/kpwinaudit.ps1 -OutFile kpwinaudit.ps1
 Get-AuthenticodeSignature .\kpwinaudit.ps1
 unblock-file ./kpwinaudit.ps1
 ```
 
-or click on the script and download the raw file.
+or click on the script and download the raw file (make sure to click on the "Raw" link or else you'll likely get HTML).
 
 ## Usage and Results
 Launch a PowerShell window as Administrator and run:
