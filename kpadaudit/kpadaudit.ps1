@@ -1,7 +1,9 @@
 <#
 KP Active Directory Auditor
 Author: Randy Bartels
- #>
+0.1.0   Initial release
+0.1.1   Fixed issue where spaces in user names threw an error in the Get-AdResultantPasswordPolicy PowerShell command (User_AdminPasswordPolicy) (Issue #8)
+#>
 
 <#
 .SYNOPSIS
@@ -63,7 +65,7 @@ param(
 
 Clear-Host
 
-$KPADAVERSION="0.1.0"
+$KPADAVERSION="0.1.1"
 $OutWidth=512                   #Width to use for the outfile / setting high to avoid line truncation "..."
 $MaxItemCount=1000              #Maximum number of items to return for Get-ADUser and Get-ADGroup
 $BugReportsURL="https://github.com/kirkpatrickprice/windows-audit-scripts/issues"
@@ -346,7 +348,7 @@ $section="User_AdminPasswordPolicy"
     )   
     $AdminUsers=@()                                 #Define an array to hold the AdminUsers
     ForEach ($Group in $InterestingGroups) {
-        (Get-AdGroupMember -Recursive -Identity "$Group").Name | ForEach-Object {
+        (Get-AdGroupMember -Recursive -Identity "$Group").SamAccountName | ForEach-Object {
             $AdminUsers += "$_"
         }
     }
