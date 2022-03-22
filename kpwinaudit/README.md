@@ -18,7 +18,7 @@ Installation is as simple as copying or cloning the PowerShell script to your sy
 
 Git clone:
 
-`git clone https://github.com/kirkpatrickprice/windows-audit-script`
+`git clone https://github.com/kirkpatrickprice/windows-audit-scripts`
 
 or from PowerShell:
 ```
