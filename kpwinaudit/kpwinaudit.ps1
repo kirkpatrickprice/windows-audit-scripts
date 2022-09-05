@@ -45,6 +45,12 @@ Version 0.4.3
   - System_InstalledCapabilities: Added ttest to see if Get-WindowsCapability is present (e.g. not installed on some server versions)
   - Time_W32TimeLogs: Added alternate command for Windows 2012 servers
   - System_WindowsUpdateConfig: Improved collection of WU-related registry keys, including when using Configuration Service Providers such as Intune
+Version 0.4.4
+  - Add System_WindowsUpdateHistory to attempt to overcome limitations on Get-Hotfix PowerShell command.  https://docs.microsoft.com/en-us/answers/questions/191945/get-hotfix-not-returning-all-installed-kbs.html
+  - Force all "out-file" commands to write ASCII text (not UTF-8, UTF-16, etc).  Will help with Analysis Toolkit processing and /hopefully/ avoid the need to convert
+    files with the Linux "dos2unix" command prior to processing with Grep, Python, etc.
+  - Collect IPSec Configurations in Networking_IPSecConfig
+  - Collect File System Auditing settings (and other details) for critical OS folders and files (Logging_FSAuditing)
 #>
 
 <#
@@ -123,7 +129,7 @@ Clear-Host
 
 #Requires -RunAsAdministrator
 
-$KPWINVERSION="0.4.3"
+$KPWINVERSION="0.4.4"
 $hn = hostname.exe
 #Width to use for the outfile / setting high to avoid line truncation "..."
 $OutWidth=512
@@ -162,7 +168,7 @@ function header {
 
   Process {
     write-host "Processing: $text" -ForegroundColor red
-    "$text:: ###[BEGIN]" | Out-File -FilePath $Outfile -Append -width $OutWidth
+    "$text:: ###[BEGIN]" | Out-File -encoding ascii -FilePath $Outfile -Append -width $OutWidth
 
   }
 }
@@ -172,7 +178,7 @@ function footer {
     [string]$text
   )
   Process {
-    "$text:: ###[END]" | Out-File -FilePath $Outfile -Append -width $OutWidth
+    "$text:: ###[END]" | out-file -encoding ascii -FilePath $Outfile -Append -width $OutWidth
   }
 }
 
@@ -183,7 +189,7 @@ function comment {
   )
 
   Process {
-    "$section:: ###$text" | Out-File -FilePath $Outfile -Append -width $OutWidth
+    "$section:: ###$text" | out-file -encoding ascii -FilePath $Outfile -Append -width $OutWidth
   }
 }
 
@@ -196,16 +202,16 @@ function Invoke-MyCommand {
     Process {
         $errorCount = $error.count
     #    write-host "$section:: Processing Command: $command" -ForegroundColor Red
-        "$section:: ###Processing Command: $command" | Out-File -FilePath $Outfile -Append -width $OutWidth
+        "$section:: ###Processing Command: $command" | out-file -encoding ascii -FilePath $Outfile -Append -width $OutWidth
         Invoke-Command -ScriptBlock $command -ErrorAction SilentlyContinue | Out-String -stream -Width $Outwidth | ForEach-Object {
             #Only print lines that have alpha/numeric/punction
             if ($_.Length -match "[A-Za-z0-9,.]") {
-                "$section::$_" | Out-File -FilePath $Outfile -Append -width $OutWidth
+                "$section::$_" | out-file -encoding ascii -FilePath $Outfile -Append -width $OutWidth
             }
-            if ($error.count -gt $errorCount ) {
-                "$section:: Error processing command" | Out-File -FilePath $Outfile -Append -width $OutWidth
-                write-debug "$error"
-            }
+#            if ($error.count -gt $errorCount ) {
+#                "$section:: Error processing command" | out-file -encoding ascii -FilePath $Outfile -Append -width $OutWidth
+#                write-debug "$error"
+#            }
         }
     }
 }
@@ -349,6 +355,7 @@ $section="Script_Init"
         "Server 2016"   {$systemtype="Server2016"}
         "Server 2012"   {$systemtype="Server2012"}
         "Windows 10"    {$systemtype="Windows10"}
+        "Windows 11"    {$systemtype="Windows11"}
         default         {
                             $systemtype="Unsupported"
                             Write-Host "Operating system type is not supported by the script.  Supported systems include Windows 10, Server 2012, Server 2016, Server 2019 and Server 2022."
@@ -424,9 +431,10 @@ footer -text $section
 
 $section="System_OSInfo"
     header -text $section
-    comment -section $section -text " Note: Use this information as the most accurate report of Windows version"
-    comment -section $section -text " Note: The first result provide an easy-to-search Windows version string (e.g. Windows 10 Pro 1909 18363.1082)."
-    comment -section $section -text " Note: The second result provides the entire ""Current Version"" object from the registry."
+    comment -section $section -text "Note: Use this information as the most accurate report of Windows version.  See Confluence for list of resources to map"
+    comment -section $section -text "this info to which Updates have been installed and if the OS version is still supported."
+    comment -section $section -text "Note: The first result provide an easy-to-search Windows version string (e.g. Windows 10 Pro 1909 18363.1082)."
+    comment -section $section -text "Note: The second result provides the entire ""Current Version"" object from the registry."
     $command={ Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction silentlycontinue | Select-Object ProductName, ReleaseID, CurrentBuild, UBR | Format-List }
         Invoke-MyCommand -section $section -command $command
     $command={ Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction silentlycontinue | Select-Object * }
@@ -496,8 +504,27 @@ footer -text $section
 $section="System_InstalledHotfixes"
     comment -section $section -text "This section provides a list of all hotfixes that have been installed.  Reviewing these results is a critical part of analyzing patch management practices."
     comment -section $section -text "Look at 'System_PendingWindowsUpdates' for a list of things that still need to be installed."
+    comment -section $section -text "IMPORTANT NOTE: Get-HotFix is not 100% reliable.  Whether it reports on the HF action depends on the manner used to install the HF.  Notably, it does not capture"
+    comment -section $section -text "all HFs installed by WindowsUpdate.  We will use two methods to gather HF info, hoping to improve the qualify of collected data."
+    comment -section $section -text "The first method uses the PowerShell ""Get-Hotfix"" command.  The second queries the Windows Update Service directly."
     header -text $section
     $command={ Get-HotFix -ErrorAction silentlycontinue | Select-Object -Property Description, HotFixID, InstalledOn | Sort-Object -Descending -Property InstalledOn | Format-Table -AutoSize }
+        Invoke-MyCommand -section $section -command $command
+footer -text $section
+
+$section="System_WindowsUpdateHistory"
+    header -text $section
+    comment -section $section -text "This section collects all available Windows Update Service history.  This /should/ help with filling in the gaps where ""Get-Hotfix"" doesn't"
+    comment -section $section -text "accurately report hotfix installation history (see note on System_InstalledHotfixes section)."
+    comment -section $section -text "NOTE: This will grab /all/ Windows Update History, including for instance daily Defender updates.  That might be helpful as evidence that"
+    comment -section $section -text "anti-virus tools are being updated daily.  Basically, if it was action taken by WUS, then it /should/ be in this log."
+    
+    #Setup a new Windows Update Session object
+    $Session = New-Object -ComObject "Microsoft.Update.Session"
+    $Searcher = $Session.CreateUpdateSearcher()
+    $historyCount = $Searcher.GetTotalHistoryCount()
+    #Search the WUS history and print the results
+    $command={ $Searcher.QueryHistory(0, $historyCount) | Select-Object @{name="Operation"; expression={switch($_.operation){ 1 {"Installation"}; 2 {"Uninstallation"}; 3 {"Other"}}}}, Date, Title }
         Invoke-MyCommand -section $section -command $command
 footer -text $section
 
@@ -556,7 +583,7 @@ $section="System_RDPEncryption"
     comment -section $section -text "     SecurityLayer = 2       Use SSL/TLS Security Layer (best)"
     comment -section $section -text "If the immediately following results are blank, then this GPO is not set, which results in ""Negotiate"" behavior."
 
-    $command={ Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" | Select-Object SecurityLayer }
+    $command={ Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" | Select-Object SecurityLayer | Format-List }
         Invoke-MyCommand -section $section -command $command
 
     comment -section $section -text "When GPO is configured to ""RDP"" or when negotiated parameters result in using ""RDP Security Layer"", the next result provides the RDP Encryption setting."
@@ -604,7 +631,7 @@ $section="System_ScreensaverConfig"
     comment -section $section -text "In addition to the settings described above in System_ScreenSaverConfigGPO:"
     comment -section $section -text "     ScreenSaverGracePeriod  The period of time after the screensaver activates where the user can cause movement to cancel the screen saver."
     comment -section $section -text "                             If the following results are blank, the default is 5 seconds"
-    $command={ Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -ErrorAction silentlycontinue | Select-Object ScreenSaverGacePeriod | Format-List }
+    $command={ Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -ErrorAction silentlycontinue | Select-Object ScreenSaverGracePeriod | Format-List }
         Invoke-MyCommand -section $section -command $command
 footer -text $section
 
@@ -750,6 +777,30 @@ $section="Networking_WindowsFirewallRules"
     header -text $section
     $command={ Get-NetFirewallRule -ErrorAction silentlycontinue | Where-Object { $_.Enabled -eq 'True' } | Select-Object DisplayName, Profile, Enabled, Direction, Action, Mandatory, DisplayGroup | sort-object -property Direction | format-table -Autosize }
         Invoke-MyCommand -section $section -command $command
+footer -text $section
+
+$section="Networking_IPSecConfig"
+    header -text $section
+    comment -section $section -text "Provide details of IPSec configuration.  Chances are, IPSec is not being used directly on endpoints, but just in case, we'll grab the config anyway."
+    comment -section $section -text "Many of these commands may come back with now results, so if the line just after the ""Processing command"" goes straing to another comment, you'll know why."
+    
+    $IPSecList="Rule,MainModeRule,MainModeSA,MainModeCryptoSet,Phase1AuthSet,Phase2AuthSet,QuickModeCryptoSet,QuickModeSA"
+    $IPSecList=$IPSecList.split(",")
+    #MainModeSA and QuickModeSA require special handling as they don't have a "PolicyStore" option
+    #Variable substitution inside of a ScriptBlock is a little wonky, so we're making a string first, then we'll convert it to a ScriptBlock
+    foreach ($i in $IPSecList) {
+        $command = $null
+        if ($i -match 'SA$') {
+            $commandStr= "Get-NetIPSec$i -ErrorAction silentlycontinue"
+        } else {
+            $commandstr="Get-NetIPSec$i -PolicyStore ActiveStore -ErrorAction silentlycontinue"
+        }
+        $section="Networking_IPSecConfig-$i"
+        $command=[scriptblock]::Create($commandStr)
+        Invoke-MyCommand -section $section -command $command
+    }
+    
+    $section="Networking_IPSecConfig"
 footer -text $section
 
 $section="Time_W32TimeRegistry"
@@ -993,8 +1044,25 @@ footer -text $section
 $section="Logging_AuditEventsConfig"
     header -text $section
     comment -section $section -text "Provides a detailed report of the events that will be captured by the local Windows Event Log service."
+    comment -section $section -text "Reference: https://docs.microsoft.com/en-us/windows/security/threat-protection/auditing/advanced-security-auditing-faq"
     $command={ auditpol.exe /get /category:"*" | format-list }
         Invoke-MyCommand -section $section -command $command
+footer -text $section
+
+$section="Logging_FSAuditing"
+    header -text $section
+    comment -section $section -text "This section collects auditing settings and other details for probably-important files and folders."
+    comment -section $section -text "For instance, for a PCI audit, it's necessary to log all changes to ""System Level Objects"".  One way that might be manifested for an operating system"
+    comment -section $section -text "is ""new files/folders in OS-sensitive areas of the file system -- C:\Windows for instance."
+
+    $FilesList="C:\Windows,C:\Windows\System,C:\Windows\System32,C:\Windows\SystemApps,C:\Windows\SysWOW64,C:\Program Files,C:\Program Files (x86)"
+    $FilesList=$FilesList.Split(",")
+    foreach ($file in $FilesList) {
+        $section="Logging_FSAuditing-$file"
+        $command= { get-acl -Path $file -ErrorAction SilentlyContinue | format-list }
+            Invoke-MyCommand -section $section -command $command
+    }
+    $section="Logging_FSAuditing"
 footer -text $section
 
 $section="Logging_AuditLogConfig"
@@ -1034,10 +1102,10 @@ footer -text $section
 
 #Stop-Transcript
 # SIG # Begin signature block
-# MIIOZgYJKoZIhvcNAQcCoIIOVzCCDlMCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
+# MIIOZwYJKoZIhvcNAQcCoIIOWDCCDlQCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUu9xrdly5usL9zGZeEgJreWAv
-# vhygggw/MIIDeTCCAv6gAwIBAgIQHM+dZ83iGf8S2Zr/NoLlpzAKBggqhkjOPQQD
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU2UmFFXbkJa9OAdBY2OvLf+Zx
+# PB+gggw/MIIDeTCCAv6gAwIBAgIQHM+dZ83iGf8S2Zr/NoLlpzAKBggqhkjOPQQD
 # AzB8MQswCQYDVQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0
 # b24xGDAWBgNVBAoMD1NTTCBDb3Jwb3JhdGlvbjExMC8GA1UEAwwoU1NMLmNvbSBS
 # b290IENlcnRpZmljYXRpb24gQXV0aG9yaXR5IEVDQzAeFw0xOTAzMDcxOTM1NDda
@@ -1102,13 +1170,13 @@ footer -text $section
 # eMIF065b1A7IQb/sgrSpq0dlCRMa8YGGmafxhWKTFABz0ES2MrXm3falKY/fp48T
 # KNTnYU6QIMO6evNNXbxtM2gGVN+a9zIhGhfxg5Adv4gju/886VksL+4YrGZvTHB+
 # EtHCD/jvKOslGAitujP0yQ3bCSgZbkyQS2eC1h8SyRIbOcb+8WsL0vXJkpz0eK3F
-# VsEGdd3ECjAFazn5T00wP02aJxfaMYIBkTCCAY0CAQEwgYwweDELMAkGA1UEBhMC
+# VsEGdd3ECjAFazn5T00wP02aJxfaMYIBkjCCAY4CAQEwgYwweDELMAkGA1UEBhMC
 # VVMxDjAMBgNVBAgMBVRleGFzMRAwDgYDVQQHDAdIb3VzdG9uMREwDwYDVQQKDAhT
 # U0wgQ29ycDE0MDIGA1UEAwwrU1NMLmNvbSBDb2RlIFNpZ25pbmcgSW50ZXJtZWRp
 # YXRlIENBIEVDQyBSMgIQYnyT6ulolooh0mGI8Cl9DzAJBgUrDgMCGgUAoHgwGAYK
 # KwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIB
 # BDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-# Hqt4kcRJJEeZhnW+X6Pfd/EOrZswCwYHKoZIzj0CAQUABGcwZQIxAP9CGBWMo/Dc
-# Y7ACYbTRrwPOMLbXqrkMOVfDNqS965+r9JH8pK+a4tY6tdwjms8OsgIwPuBsAkr2
-# Q0d6hJSqdjQlaMNzDBKj/RrxpzmqQP0RBJiadooKGWNF0TPb7fsx3pkq
+# bC/MXECgbRrxQEA/f4XJM0APy1EwCwYHKoZIzj0CAQUABGgwZgIxALegha/qN+7x
+# S/Ws5ApxVUWS4vY0WCdvsuOgilaMSvAEZRkEXIq/h2pXVeDtufyThwIxAN7U9mfV
+# rXoyTvcLbZOP9qWfWeJFMLQTL9JdB4eE+LdLlmhAwD0za1FEvttCie5xdQ==
 # SIG # End signature block
