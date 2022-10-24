@@ -51,6 +51,8 @@ Version 0.4.4
     files with the Linux "dos2unix" command prior to processing with Grep, Python, etc.
   - Collect IPSec Configurations in Networking_IPSecConfig
   - Collect File System Auditing settings (and other details) for critical OS folders and files (Logging_FSAuditing)
+Version 0.4.5
+  - Clarifications to support adv-searchfor.py
 #>
 
 <#
@@ -814,14 +816,19 @@ $section="Time_W32TimeRegistry"
     comment -section $section -text "   ClockAdjustmentAuditLimit   Specifies the smallest local clock adjustments that may be logged to the W32time service event log on the target computer."
     comment -section $section -text "   EventLogFlags               Controls which events that the time service logs. 0x1 = Time jump.  0x2 = Source change"
 
-    $command={ Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Config" -ErrorAction silentlycontinue }
-        Invoke-MyCommand -section $section -command $command
-    $command={ Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters" -ErrorAction silentlycontinue }
-        Invoke-MyCommand -section $section -command $command
-    $command={ Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpClient" -ErrorAction silentlycontinue }
-        Invoke-MyCommand -section $section -command $command
-    $command={ Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpServer" -ErrorAction silentlycontinue }
-        Invoke-MyCommand -section $section -command $command
+    $section="Time_W32TimeRegistry-Config"
+        $command={ Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Config" -ErrorAction silentlycontinue }
+            Invoke-MyCommand -section $section -command $command
+    $section="Time_W32TimeRegistry-Parameters"
+        $command={ Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters" -ErrorAction silentlycontinue }
+            Invoke-MyCommand -section $section -command $command
+    $section="Time_W32TimeRegistry-NtpClient"
+        $command={ Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpClient" -ErrorAction silentlycontinue }
+            Invoke-MyCommand -section $section -command $command
+    $section="Time_W32TimeRegistry-NtpServer"
+        $command={ Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpServer" -ErrorAction silentlycontinue }
+            Invoke-MyCommand -section $section -command $command
+    $section="Time_W32TimeRegistry"
 footer -text $section
 
 $section="Time_ClockPermissions"
