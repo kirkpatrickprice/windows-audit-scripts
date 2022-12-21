@@ -53,6 +53,8 @@ Version 0.4.4
   - Collect File System Auditing settings (and other details) for critical OS folders and files (Logging_FSAuditing)
 Version 0.4.5
   - Clarifications to support adv-searchfor.py
+Version 0.4.6
+  - Include username in Get-Process listing (System_RunningProcesses)
 #>
 
 <#
@@ -131,7 +133,7 @@ Clear-Host
 
 #Requires -RunAsAdministrator
 
-$KPWINVERSION="0.4.4"
+$KPWINVERSION="0.4.6"
 $hn = hostname.exe
 #Width to use for the outfile / setting high to avoid line truncation "..."
 $OutWidth=512
@@ -572,7 +574,7 @@ $section="System_RunningProcesses"
     header -text $section
     comment -section $section -text "A list of all of running processes on the system.  This is useful when looking for anti-virus, user programs and really anything else that's currently listed in the Task Manager."
     comment -section $section -text "NOTE: This is displayed in LIST format because PowerShell does some funny things when formatting this information as a table."
-    $command={ Get-Process * | Select-Object ProcessName, Path, Company, Product, ID | Sort-Object Company, Product | Format-List }
+    $command={ Get-Process * -IncludeUserName | Select-Object ProcessName, Path, Company, Product, ID, Username | Sort-Object Company, Product | Format-List }
         Invoke-MyCommand -section $section -command $command
 footer -text $section
 
@@ -1109,10 +1111,10 @@ footer -text $section
 
 #Stop-Transcript
 # SIG # Begin signature block
-# MIIOZgYJKoZIhvcNAQcCoIIOVzCCDlMCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
+# MIIOZwYJKoZIhvcNAQcCoIIOWDCCDlQCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+5ZnhYidgjhyh230y1PIDDdf
-# kcagggw/MIIDeTCCAv6gAwIBAgIQHM+dZ83iGf8S2Zr/NoLlpzAKBggqhkjOPQQD
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUEM2FN/BFx0y97GHTZJNo9P5
+# 6oSgggw/MIIDeTCCAv6gAwIBAgIQHM+dZ83iGf8S2Zr/NoLlpzAKBggqhkjOPQQD
 # AzB8MQswCQYDVQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0
 # b24xGDAWBgNVBAoMD1NTTCBDb3Jwb3JhdGlvbjExMC8GA1UEAwwoU1NMLmNvbSBS
 # b290IENlcnRpZmljYXRpb24gQXV0aG9yaXR5IEVDQzAeFw0xOTAzMDcxOTM1NDda
@@ -1177,13 +1179,13 @@ footer -text $section
 # eMIF065b1A7IQb/sgrSpq0dlCRMa8YGGmafxhWKTFABz0ES2MrXm3falKY/fp48T
 # KNTnYU6QIMO6evNNXbxtM2gGVN+a9zIhGhfxg5Adv4gju/886VksL+4YrGZvTHB+
 # EtHCD/jvKOslGAitujP0yQ3bCSgZbkyQS2eC1h8SyRIbOcb+8WsL0vXJkpz0eK3F
-# VsEGdd3ECjAFazn5T00wP02aJxfaMYIBkTCCAY0CAQEwgYwweDELMAkGA1UEBhMC
+# VsEGdd3ECjAFazn5T00wP02aJxfaMYIBkjCCAY4CAQEwgYwweDELMAkGA1UEBhMC
 # VVMxDjAMBgNVBAgMBVRleGFzMRAwDgYDVQQHDAdIb3VzdG9uMREwDwYDVQQKDAhT
 # U0wgQ29ycDE0MDIGA1UEAwwrU1NMLmNvbSBDb2RlIFNpZ25pbmcgSW50ZXJtZWRp
 # YXRlIENBIEVDQyBSMgIQYnyT6ulolooh0mGI8Cl9DzAJBgUrDgMCGgUAoHgwGAYK
 # KwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIB
 # BDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-# 0GX7ivc6sp2xTxYbl5dkJ/fiwPYwCwYHKoZIzj0CAQUABGcwZQIxAK1mfOhpiq9A
-# rpRPQUrF/Qnir9avrgA+yk9LoXImre6o+jtfWcUOP36F4G0jpag4MgIwHiDwd9S9
-# rSASXZoU3iFrOoODQNHGRPMglnDUCzQ/4EcycWLe8MuOF1b+Yb+Wd1AC
+# +sLcMkRuS+UpEgsJHU/IRv05CRMwCwYHKoZIzj0CAQUABGgwZgIxAIv6TT6AiPMa
+# fm9TO8KncLiUJt5VXuZubRK3PQwErLXnNHrYiXjpo+deVqJUvopwjQIxAPMlaRO5
+# 7iJD6mUxJqalH+dNQ7UHUKGbDy2dpinkfnbScdDQBZT+8EBgRTe+hfU3lA==
 # SIG # End signature block
