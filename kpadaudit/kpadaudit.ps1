@@ -3,6 +3,7 @@ KP Active Directory Auditor
 Author: Randy Bartels
 0.1.0   Initial release
 0.1.1   Fixed issue where spaces in user names threw an error in the Get-AdResultantPasswordPolicy PowerShell command (User_AdminPasswordPolicy) (Issue #8)
+0.1.2   Change output file encoding to ASCII
 #>
 
 <#
@@ -65,7 +66,7 @@ param(
 
 Clear-Host
 
-$KPADAVERSION="0.1.1"
+$KPADAVERSION="0.1.2"
 $OutWidth=512                   #Width to use for the outfile / setting high to avoid line truncation "..."
 $MaxItemCount=1000              #Maximum number of items to return for Get-ADUser and Get-ADGroup
 $BugReportsURL="https://github.com/kirkpatrickprice/windows-audit-scripts/issues"
@@ -77,7 +78,7 @@ function header {
 
   Process {
     write-host "Processing: $text"
-    "$text:: ###[BEGIN]" | Out-File -FilePath $Outfile -Append -width $OutWidth
+    "$text:: ###[BEGIN]" | Out-File -encoding ascii -FilePath $Outfile -Append -width $OutWidth
 
   }
 }
@@ -87,7 +88,7 @@ function footer {
     [string]$text
   )
   Process {
-    "$text:: ###[END]" | Out-File -FilePath $Outfile -Append -width $OutWidth
+    "$text:: ###[END]" | Out-File -encoding ascii -FilePath $Outfile -Append -width $OutWidth
   }
 }
 
@@ -98,7 +99,7 @@ function comment {
   )
 
   Process {
-    "$section:: ###$text" | Out-File -FilePath $Outfile -Append -width $OutWidth
+    "$section:: ###$text" | Out-File -encoding ascii -FilePath $Outfile -Append -width $OutWidth
   }
 }
 
@@ -111,14 +112,14 @@ function Invoke-MyCommand {
     Process {
         $errorCount = $error.count
     #    write-host "$section:: Processing Command: $command" -ForegroundColor Red
-        "$section:: ###Processing Command: $command" | Out-File -FilePath $Outfile -Append -width $OutWidth
+        "$section:: ###Processing Command: $command" | Out-File -encoding ascii -FilePath $Outfile -Append -width $OutWidth
         Invoke-Command -ScriptBlock $command -ErrorAction SilentlyContinue | Out-String -stream -Width $Outwidth | ForEach-Object {
             #Only print lines that have alpha/numeric/punction
             if ($_.Length -match "[A-Za-z0-9,.]") {
-                "$section::$_" | Out-File -FilePath $Outfile -Append -width $OutWidth
+                "$section::$_" | Out-File -encoding ascii -FilePath $Outfile -Append -width $OutWidth
             }
             if ($error.count -gt $errorCount ) {
-                "$section:: Error processing command" | Out-File -FilePath $Outfile -Append -width $OutWidth
+                "$section:: Error processing command" | Out-File -encoding ascii -FilePath $Outfile -Append -width $OutWidth
                 write-debug "$error"
             }
         }
@@ -157,6 +158,7 @@ $section="Script_Init"
         "Server 2016"   {$systemtype="Server2016"}
         "Server 2012"   {$systemtype="Server2012"}
         "Windows 10"    {$systemtype="Windows10"}
+        "Windows 11"    {$systemtype="Windows11"}
         default         {
                             $systemtype="Unsupported"
                             Write-Host "Operating system type is not supported by the script.  Supported systems include Windows 10, Server 2012, Server 2016, Server 2019 and Server 2022."
@@ -380,8 +382,8 @@ footer -text $section
 # SIG # Begin signature block
 # MIIOZQYJKoZIhvcNAQcCoIIOVjCCDlICAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyqi/d+Mo+AfVbihF+dcLyb+l
-# bOagggw/MIIDeTCCAv6gAwIBAgIQHM+dZ83iGf8S2Zr/NoLlpzAKBggqhkjOPQQD
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgTBDZzKo92ataQ+DF9TvLcFZ
+# ao+gggw/MIIDeTCCAv6gAwIBAgIQHM+dZ83iGf8S2Zr/NoLlpzAKBggqhkjOPQQD
 # AzB8MQswCQYDVQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0
 # b24xGDAWBgNVBAoMD1NTTCBDb3Jwb3JhdGlvbjExMC8GA1UEAwwoU1NMLmNvbSBS
 # b290IENlcnRpZmljYXRpb24gQXV0aG9yaXR5IEVDQzAeFw0xOTAzMDcxOTM1NDda
@@ -452,7 +454,7 @@ footer -text $section
 # YXRlIENBIEVDQyBSMgIQYnyT6ulolooh0mGI8Cl9DzAJBgUrDgMCGgUAoHgwGAYK
 # KwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIB
 # BDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-# T9QRWoMEGGsckLvD/yr9LFTYGPQwCwYHKoZIzj0CAQUABGYwZAIwbaGZ9d8Ne2qZ
-# 8nhoE9ZV2Rya/vR8Sqw3s+U5RTJZca7LlokngNkkhgD8VGj8UEwuAjB3RdoeOjbR
-# OPVMAEwHsmM89Tken3gigPgF/JtQVnMyLr/o5pmGP+n8Rz1INX8Qdkc=
+# Eqmis+P97+h2FEN0K0M5GrkzG00wCwYHKoZIzj0CAQUABGYwZAIwVGliHMPlVqjd
+# AsFAyWUEszEF2zbdGueCPsw6v+e4zrgOIaPo2Ydx1uP5bQR/hCAaAjB7JHDT3rbL
+# 4JZkm9hHCOqMaFhrf7qAM2Kjbb22PEyh3rMAC1CVTbhS0zdwcQ7VKrI=
 # SIG # End signature block
