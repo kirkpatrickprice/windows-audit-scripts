@@ -34,7 +34,7 @@ Git clone:
 or from PowerShell:
 ```
 Invoke-WebRequest -uri https://raw.githubusercontent.com/kirkpatrickprice/windows-audit-scripts/main/kpadaudit/kpadaudit.ps1 -OutFile kpadaudit.ps1
-unblock-file .\kpwinaudit.ps1
+unblock-file .\kpadaaudit.ps1
 ```
 
 or click on the script and download the raw file (make sure to click on the "Raw" link or else you'll likely get HTML).
