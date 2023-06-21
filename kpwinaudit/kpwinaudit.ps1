@@ -55,6 +55,8 @@ Version 0.4.5
   - Clarifications to support adv-searchfor.py
 Version 0.4.6
   - Include username in Get-Process listing (System_RunningProcesses)
+Version 0.4.7 (June 21, 2023)
+  - Collect BIOS information (System_BIOS)
 #>
 
 <#
@@ -133,7 +135,7 @@ Clear-Host
 
 #Requires -RunAsAdministrator
 
-$KPWINVERSION="0.4.6"
+$KPWINVERSION="0.4.7"
 $hn = hostname.exe
 #Width to use for the outfile / setting high to avoid line truncation "..."
 $OutWidth=512
@@ -433,6 +435,14 @@ $section="System_Hostname"
         Invoke-MyCommand -section $section -command $command
 footer -text $section
 
+$section="System_BIOS"
+    header -text $section
+    comment -section $section -text "Collect BIOS information for review and comparison against known CVEs.  BIOS vulnerabilities are particularly nasty in that they can affect an OS before it fully boots."
+    comment -section $section -text "They are also, thankfully, rarer than your garden-variety CVE affecting general-purpose software components."
+    $command={ get-cimInstance -Classname Win32_BIOS -ErrorAction SilentlyContinue }
+        Invoke-MyCommand -section $section -command $command
+footer -text $section
+
 $section="System_OSInfo"
     header -text $section
     comment -section $section -text "Note: Use this information as the most accurate report of Windows version.  See Confluence for list of resources to map"
@@ -500,7 +510,7 @@ $section="System_InstalledFeatures"
     Invoke-MyCommand -section $section -command $command
 
     comment -section $section -text "Between System_InstalledCapabilities, System_InstalledFeatured, and System_InstalledSoftware, we collect a complete list of installed software -- from Microsoft and others."
-    comment -section $section -text "Get-WindowsOptionalFeature provides the list of Optional Features (see Apps & Features --> Optional Features)."
+    comment -section $section -text "Get-WindowsOptionalFeature provides the list of Optional Features (see Apps and Features --> Optional Features)."
     $command={ Get-WindowsOptionalFeature -Online | Where-Object {$_.State -eq 'Enabled'} | format-table -Autosize }
         Invoke-MyCommand -section $section -command $command
 footer -text $section
@@ -807,6 +817,30 @@ $section="Networking_IPSecConfig"
     $section="Networking_IPSecConfig"
 footer -text $section
 
+$section="Networking_WinRM"
+    header -text $section
+    comment -section $section -text "Windows Remote Monitoring (WinRM) provides remote management capabilities (reference: WS-MAN protocol) as well as PowerShell Remoting features"
+    comment -section $section -text "There a few settings that should be evaluated to ensure that remote access is properly secured and encrypted"
+    comment -section $section -text "  - Transport: Can be HTTP or HTTPS, but regardless of the setting, WinRM performs encryption according to the 'AllowUnencrypted' setting below"
+    comment -section $section -text "  - AllowUnuncrypted: This defaults to False, which ensures that message-level encryption is enforced for the WinRM protocol even if HTTP is used as the transport"
+    comment -section $section -text "  - Auth methods: Various authentication methods enabled on the WinRM server"
+    comment -section $section -text "  - ListeningOn: The IP addresses where the server is listening for WinRM connections"
+    comment -section $section -text "  - AllowRemoteAccess: Pretty much what it says"
+    comment -section $section -text "  - AllowRemoteShellAccess: Allows PowerShell remote shell connections"
+    $winrmService=Get-Service -Name winrm
+    if ($winrmService.Status -eq 'Running') {
+        $section="Networking_WinRM-service"
+        $command={ winrm get winrm/config/service }
+            Invoke-MyCommand -section $section -command $command
+        $section="Networking_WinRM-winrs"
+            $command={ winrm get winrm/config/winrs }
+                Invoke-MyCommand -section $section -command $command
+        $section="Networking_WinRM-listener"
+        $command={ winrm enumerate winrm/config/listener }
+            Invoke-MyCommand -section $section -command $command
+    }
+footer -text $section
+
 $section="Time_W32TimeRegistry"
     header -text $section
     comment -section $section -text "Two approaches are used to pull time synchronization settings.  The first approach pulls settings directly from the registry."
@@ -1110,11 +1144,12 @@ footer -text $section
 
 
 #Stop-Transcript
+
 # SIG # Begin signature block
 # MIIOZwYJKoZIhvcNAQcCoIIOWDCCDlQCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUEM2FN/BFx0y97GHTZJNo9P5
-# 6oSgggw/MIIDeTCCAv6gAwIBAgIQHM+dZ83iGf8S2Zr/NoLlpzAKBggqhkjOPQQD
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUS8/3xwAaQSsLgBNIzNmqcnfE
+# 2DGgggw/MIIDeTCCAv6gAwIBAgIQHM+dZ83iGf8S2Zr/NoLlpzAKBggqhkjOPQQD
 # AzB8MQswCQYDVQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0
 # b24xGDAWBgNVBAoMD1NTTCBDb3Jwb3JhdGlvbjExMC8GA1UEAwwoU1NMLmNvbSBS
 # b290IENlcnRpZmljYXRpb24gQXV0aG9yaXR5IEVDQzAeFw0xOTAzMDcxOTM1NDda
@@ -1185,7 +1220,7 @@ footer -text $section
 # YXRlIENBIEVDQyBSMgIQYnyT6ulolooh0mGI8Cl9DzAJBgUrDgMCGgUAoHgwGAYK
 # KwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIB
 # BDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-# +sLcMkRuS+UpEgsJHU/IRv05CRMwCwYHKoZIzj0CAQUABGgwZgIxAIv6TT6AiPMa
-# fm9TO8KncLiUJt5VXuZubRK3PQwErLXnNHrYiXjpo+deVqJUvopwjQIxAPMlaRO5
-# 7iJD6mUxJqalH+dNQ7UHUKGbDy2dpinkfnbScdDQBZT+8EBgRTe+hfU3lA==
+# ZRzIdR7CD6SaV71utbHN2DLMm2owCwYHKoZIzj0CAQUABGgwZgIxAOCQgPnPstpe
+# oWQB2T5zlkJxJXfQFsq1x/NFxie2gYj0MxbTOHkx/qtRlePoA8IxLwIxAIAHyTB+
+# TUqHdN3NIDbgjYA4uRelf/PzHXVu+qWdKnbOobjdxKEgZbVVP3HAd1R86Q==
 # SIG # End signature block
