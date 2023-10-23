@@ -14,7 +14,7 @@ NOTE: As of version 0.4.0, the `kpwinaudit.ps1` script is signed with an Authent
 Additionally, `git commits` are also signed and validated by GitHub.  Check the commit message to confirm that the commit is "verified."
 
 ## Installation
-**NOTE: DO NOT RIGHT-CLICK/SAVE AS on the file above to download the PowerShell script.  If you do, you'll receive an HTML page that will generate lots of errors when you run it.**
+<span style="color:red">**NOTE: DO NOT RIGHT-CLICK/SAVE AS on the file above to download the PowerShell script.  If you do, you'll receive an HTML page that will generate lots of errors when you run it.**</span>
 
 Installation is as simple as copying or cloning the PowerShell script to your system.
 
