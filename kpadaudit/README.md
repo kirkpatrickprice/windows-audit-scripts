@@ -25,19 +25,23 @@ NOTE: The `kpadaudit.ps1` script is signed with an Authenticode certificate to p
 Additionally, `git commits` are also signed and validated by GitHub.  Check the commit message to confirm that the commit is "verified."
 
 ## Installation
+**NOTE: DO NOT RIGHT-CLICK/SAVE AS on the file above to download the PowerShell script.  If you do, you'll receive an HTML page that will generate lots of errors when you run it.**
+
 Installation is as simple as copying or cloning the PowerShell script to your system.
 
-Git clone:
-
+### If you have Git installed...
 `git clone https://github.com/kirkpatrickprice/windows-audit-scripts`
 
-or from PowerShell:
+### PowerShell direct download...
 ```
 Invoke-WebRequest -uri https://raw.githubusercontent.com/kirkpatrickprice/windows-audit-scripts/main/kpadaudit/kpadaudit.ps1 -OutFile kpadaudit.ps1
-unblock-file .\kpadaaudit.ps1
+Get-AuthenticodeSignature .\kpwinaudit.ps1
+unblock-file ./kpwinaudit.ps1
 ```
 
-or click on the script and download the raw file (make sure to click on the "Raw" link or else you'll likely get HTML).
+### From your browser
+1. Click on the script above
+2. "Rick-click/Save As..." on the "Raw" link on the far-right (make sure to save the "Raw" link or else you'll get HTML).
 
 ## Usage and Results
 Launch a PowerShell window as Administrator and run:
