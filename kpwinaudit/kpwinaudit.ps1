@@ -57,6 +57,8 @@ Version 0.4.6
   - Include username in Get-Process listing (System_RunningProcesses)
 Version 0.4.7 (June 21, 2023)
   - Collect BIOS information (System_BIOS)
+Version 0.4.8 (December 7, 2023)
+  - Fix ASCII Art formatting - replaced ` with ' to resolve rendering issues and added space above the first K to align tops of letters
 #>
 
 <#
@@ -394,13 +396,13 @@ footer -text $section
 
 #Start-Transcript -path $home\Desktop\$hn.txt
 Write-Host "
-_  ___      _                _        _      _    ____       _                  
+_   ___      _                _        _      _    ____       _                  
 | |/ (_)_ __| | ___ __   __ _| |_ _ __(_) ___| | _|  _ \ _ __(_) ___ ___         
-| ' /| | '__| |/ / '_ \ / _` | __| '__| |/ __| |/ / |_) | '__| |/ __/ _ \        
+| ' /| | '__| |/ / '_ \ / _' | __| '__| |/ __| |/ / |_) | '__| |/ __/ _ \        
 | . \| | |  |   <| |_) | (_| | |_| |  | | (__|   <|  __/| |  | | (_|  __/        
 |_|\_\_|_|__|_|\_\ .__/ \__,_|\__|_|  |_|\___|_|\_\_|   |_|  |_|\___\___|        
 \ \      / (_)_ _|_| __| | _____      _____     / \  _   _  __| (_) |_ ___  _ __ 
- \ \ /\ / /| | '_ \ / _` |/ _ \ \ /\ / / __|   / _ \| | | |/ _` | | __/ _ \| '__|
+ \ \ /\ / /| | '_ \ / _' |/ _ \ \ /\ / / __|   / _ \| | | |/ _' | | __/ _ \| '__|
   \ V  V / | | | | | (_| | (_) \ V  V /\__ \  / ___ \ |_| | (_| | | || (_) | |   
    \_/\_/  |_|_| |_|\__,_|\___/ \_/\_/ |___/ /_/   \_\__,_|\__,_|_|\__\___/|_|   
 
