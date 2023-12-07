@@ -4,6 +4,7 @@ Author: Randy Bartels
 0.1.0   Initial release
 0.1.1   Fixed issue where spaces in user names threw an error in the Get-AdResultantPasswordPolicy PowerShell command (User_AdminPasswordPolicy) (Issue #8)
 0.1.2   Change output file encoding to ASCII
+0.1.3   Fix ASCII Art formatting: replaced ` with ' to resolve rendering issues and added space above the first K to align tops of letters
 #>
 
 <#
@@ -127,10 +128,10 @@ function Invoke-MyCommand {
 }
 
 Write-Host "
-_   ___      _                _        _      _   ______     _          
+ _   ___      _                _        _      _   ______     _          
 | | / (_)    | |              | |      (_)    | |  | ___ \   (_)         
 | |/ / _ _ __| | ___ __   __ _| |_ _ __ _  ___| | _| |_/ / __ _  ___ ___ 
-|    \| | '__| |/ / '_ \ / _` | __| '__| |/ __| |/ /  __/ '__| |/ __/ _ \
+|    \| | '__| |/ / '_ \ / _' | __| '__| |/ __| |/ /  __/ '__| |/ __/ _ \
 | |\  \ | |  |   <| |_) | (_| | |_| |  | | (__|   <| |  | |  | | (_|  __/
 \_|_\_/_|_| _|_|\_\ .__/ \__,_|\__|_|  |_|\___|_|\_\_|  |_|  |_|\___\___|
  / _ \     | | (_)| |        |  _  (_)             | |                   
@@ -140,7 +141,7 @@ _   ___      _                _        _      _   ______     _
 \_|_|_/\___|\__|_| \_/ \___| |___/ |_|_|  \___|\___|\__\___/|_|   \__, | 
  / _ \          | (_) |                                            __/ | 
 / /_\ \_   _  __| |_| |_ ___  _ __                                |___/  
-|  _  | | | |/ _` | | __/ _ \| '__|                                      
+|  _  | | | |/ _' | | __/ _ \| '__|                                      
 | | | | |_| | (_| | | || (_) | |                                         
 \_| |_/\__,_|\__,_|_|\__\___/|_|                                         
                                                                          
