@@ -5,6 +5,7 @@ Author: Randy Bartels
 0.1.1   Fixed issue where spaces in user names threw an error in the Get-AdResultantPasswordPolicy PowerShell command (User_AdminPasswordPolicy) (Issue #8)
 0.1.2   Change output file encoding to ASCII
 0.1.3   Fix ASCII Art formatting: replaced ` with ' to resolve rendering issues and added space above the first K to align tops of letters
+0.1.4   (Feb 8, 2024) Add AllowReversibleEncryption and UseDESKeyOnly to Get-ADUser check (PCI DSS v4 8.3.2)
 #>
 
 <#
@@ -336,7 +337,7 @@ footer -text $section
 $section="User_List"
     header -text $section
     comment -section $section -text "This section provides list of all users defined in the domain (max 1000 records)."
-    $command={  Get-ADUser -Filter * -Properties * -ErrorAction SilentlyContinue | Select-Object DistinguishedName,Name,GivenName,UserPrincipalName,Enabled,SID,LastLogonDate,PasswordLastSet,PasswordNeverExpires,PasswordExpired,PasswordNotRequired -First $MaxItemCount | Format-Table -AutoSize }
+    $command={  Get-ADUser -Filter * -Properties * -ErrorAction SilentlyContinue | Select-Object DistinguishedName,Name,GivenName,UserPrincipalName,Enabled,SID,LastLogonDate,PasswordLastSet,PasswordNeverExpires,PasswordExpired,PasswordNotRequired,AllowReversibleEncryption,UseDESKeyOnly -First $MaxItemCount | Format-Table -AutoSize }
     Invoke-MyCommand -section $section -command $command     
 footer -text $section
 
@@ -382,10 +383,10 @@ $section="GPOs_List"
 footer -text $section
 
 # SIG # Begin signature block
-# MIIfXgYJKoZIhvcNAQcCoIIfTzCCH0sCAQExDzANBglghkgBZQMEAgEFADB5Bgor
+# MIIfYAYJKoZIhvcNAQcCoIIfUTCCH00CAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCD3Tq1YWv0bWvSt
-# Db5Y2cCewlhBQBbxPX0qA9Y6ALuDAaCCDOgwggZuMIIEVqADAgECAhAtYLGndXgb
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDSpnUoxIHJ4C5V
+# dk4KvtGDy6qlbOcMvjH8Z/qdl+zHg6CCDOgwggZuMIIEVqADAgECAhAtYLGndXgb
 # zFvzMEdBS+SKMA0GCSqGSIb3DQEBCwUAMHgxCzAJBgNVBAYTAlVTMQ4wDAYDVQQI
 # DAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjERMA8GA1UECgwIU1NMIENvcnAxNDAy
 # BgNVBAMMK1NTTC5jb20gQ29kZSBTaWduaW5nIEludGVybWVkaWF0ZSBDQSBSU0Eg
@@ -454,25 +455,25 @@ footer -text $section
 # up516eDap8nMLDt7TAp4z5T3NmC2gzyKVMtODWgqlBF1JhTqIDfM63kXdlV4cW3i
 # STgzN9vkbFnHI2LmvM4uVEv9XgMqyN0eS3FE0HU+MWJliymm7STheh2ENH+kF3y0
 # rH0/NVjLw78a3Z9UVm1F5VPziIorMaPKPlDRADTsJwjDZ8Zc6Gi/zy4WZbg8Zv87
-# spWrmo2dzJTw7XhQf+xkR6OdMYIRzDCCEcgCAQEwgYwweDELMAkGA1UEBhMCVVMx
+# spWrmo2dzJTw7XhQf+xkR6OdMYIRzjCCEcoCAQEwgYwweDELMAkGA1UEBhMCVVMx
 # DjAMBgNVBAgMBVRleGFzMRAwDgYDVQQHDAdIb3VzdG9uMREwDwYDVQQKDAhTU0wg
 # Q29ycDE0MDIGA1UEAwwrU1NMLmNvbSBDb2RlIFNpZ25pbmcgSW50ZXJtZWRpYXRl
 # IENBIFJTQSBSMQIQLWCxp3V4G8xb8zBHQUvkijANBglghkgBZQMEAgEFAKB8MBAG
 # CisGAQQBgjcCAQwxAjAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwGCisG
-# AQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8GCSqGSIb3DQEJBDEiBCDjlDRBYozP
-# iRjr1pIhlHC5Lcy8MzMoYmieUdkTibxrWTANBgkqhkiG9w0BAQEFAASCAYBWpxHH
-# EVSwOcx6nOmDsS9g4gabXJoxbU+uMgNIpMZqXX7RKviMCtHa9C0QZlqiqJ2yk8GS
-# J+wcJDW5YWLBWdsuQH2xCvReB8Rlrfp4Uu+zthZ62yMw41FeREhMaX68pIGUY2Tv
-# 97pwrxiqeQav9wn4ORr4j9H+aU0ieNCgTvRdBZ7UX4M57qWaNXnuZJ6QWjbA7ddE
-# mPQIEKAVHdj5geVvMO0xBQ9+MnzxHwEPJq3wxfiEjhJ3N8+1noxA6XCMfmmD0p/c
-# TvFatOSXQBJAbdsPAjx5rapeq/HEyj26Obr5va058le6XXSk4z+SpAbyVMVUfjxI
-# DPnioSPcDuLFfQAX0lAJRIcLE2GCPxEIBRd4q4yWnnNe6KLfyUReFvs1/h+aawPK
-# uIjiqfcZu8TZaPcGwUFS1FpWHmKxCjp1co6TzIDTCBpvgRwaOyXfMkzgQ3iqXex/
-# xdlZCz9gGjEKBp4EPdrX0LmBJSF2omjqIlSikoMIvJp8gOwvQz5yBLQ0XgOhgg8S
-# MIIPDgYKKwYBBAGCNwMDATGCDv4wgg76BgkqhkiG9w0BBwKggg7rMIIO5wIBAzEN
+# AQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8GCSqGSIb3DQEJBDEiBCBoQyrA6NBZ
+# tv3TW5O/vNY3AAPQWLXMUvKCE10qRPUmiDANBgkqhkiG9w0BAQEFAASCAYBjXY1J
+# /CXyb+DBq7OhQ3w0t/4eQCSBjeinWQDjXZmfuKyKeXtL4xRv2fH+fC7iebk8xUW1
+# 3Du2RO5tE/+0+8rV/4RaCILazycf7peVDedIrqiUd/Q2QZh45dkDfOj1VBXSfZof
+# MZYqi3V0JC1zsxI3K5gQ6ZOPrQfHWtkukv942eSkM838KgEU+y6MtssjSjvclxp5
+# a8H8bmq8T5vGQfzW4EAxuFwKymJYuMMe5JPvucRbFb0Cm882OOyvqy8GIff/JCpS
+# HRzl7WuWkT1SqkaVpAHl+xYZRTsRJkxF3afzGjlaXkb2PXGWwsIbCZ/ATnOwPQIt
+# 2SbHSGHC86UpZAzz8vC9ael2oZ4A/ChqsFVTPLbECATxs0ETkAPR+dppjS1uDgEk
+# L/EHePG/TwCGZLo8U9yNeT4CxXwd3G6znd98XVSN10dla2Vgau0rqsAYkcCi8C48
+# lDRtB24y4gRfPUP//Dfbo+lC6o+onl4p1BTwiqV8w8uXqm9QGzT+vGt9oVWhgg8U
+# MIIPEAYKKwYBBAGCNwMDATGCDwAwgg78BgkqhkiG9w0BBwKggg7tMIIO6QIBAzEN
 # MAsGCWCGSAFlAwQCATB3BgsqhkiG9w0BCRABBKBoBGYwZAIBAQYMKwYBBAGCqTAB
-# AwYBMDEwDQYJYIZIAWUDBAIBBQAEIN4erA4OQmMJLSQvhyANC2aUkkL/rMIjaIo4
-# LroTJ0qpAghxRawqorhTRRgPMjAyNDAyMDcyMDM3MjRaMAMCAQGgggv9MIIE+TCC
+# AwYBMDEwDQYJYIZIAWUDBAIBBQAEIMT79np0DsJxFF8izULzmHwQH2YfnbR6q+gx
+# pH6JZyApAggqKQH3y5z2GhgPMjAyNDAyMDgyMTQ3NDdaMAMCAQGgggv9MIIE+TCC
 # AuGgAwIBAgIQGtYIp9Y0tc3el8ujzPDQSzANBgkqhkiG9w0BAQsFADBzMQswCQYD
 # VQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0b24xETAPBgNV
 # BAoMCFNTTCBDb3JwMS8wLQYDVQQDDCZTU0wuY29tIFRpbWVzdGFtcGluZyBJc3N1
@@ -536,18 +537,18 @@ footer -text $section
 # qTa6LWzWItgBjGcObXeMxmbQqlEz2YtAcErkZvh0WABDDE4U8GyV/32FdaAvJgTf
 # e9MiL2nSBioYe/g5mHUSWAay/Ip1RQmQCvmF9sNfqlhJwkjy/1U1ibUkTIUBX3Hg
 # ymyQvqQTZLLys6pL2tCdWcjI9YuLw30rgZm8+K387L7ycUvqrmQ3ZJlujHl3r1hg
-# V76s3WwMPgKk1bAEFMj+rRXimSC+Ev30hXZdqyMdl/il5Ksd0vhGMYICVzCCAlMC
+# V76s3WwMPgKk1bAEFMj+rRXimSC+Ev30hXZdqyMdl/il5Ksd0vhGMYICWTCCAlUC
 # AQEwgYcwczELMAkGA1UEBhMCVVMxDjAMBgNVBAgMBVRleGFzMRAwDgYDVQQHDAdI
 # b3VzdG9uMREwDwYDVQQKDAhTU0wgQ29ycDEvMC0GA1UEAwwmU1NMLmNvbSBUaW1l
 # c3RhbXBpbmcgSXNzdWluZyBSU0EgQ0EgUjECEBrWCKfWNLXN3pfLo8zw0EswCwYJ
 # YIZIAWUDBAIBoIIBYTAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwHAYJKoZI
-# hvcNAQkFMQ8XDTI0MDIwNzIwMzcyNFowKAYJKoZIhvcNAQk0MRswGTALBglghkgB
-# ZQMEAgGhCgYIKoZIzj0EAwIwLwYJKoZIhvcNAQkEMSIEIL0Sc7aOGkffskzaCguu
-# eFJTPehwaegHZ3Aq2Pz6Se2SMIHJBgsqhkiG9w0BCRACLzGBuTCBtjCBszCBsAQg
+# hvcNAQkFMQ8XDTI0MDIwODIxNDc0N1owKAYJKoZIhvcNAQk0MRswGTALBglghkgB
+# ZQMEAgGhCgYIKoZIzj0EAwIwLwYJKoZIhvcNAQkEMSIEICmmzDfhnv8yh8kProeX
+# 5aCd6518ej1NNF/Ua+2FzvKGMIHJBgsqhkiG9w0BCRACLzGBuTCBtjCBszCBsAQg
 # jcXEJULSTxXP9cgZbtRag2jUyta9y+Qhqd4jUJ2L0yIwgYswd6R1MHMxCzAJBgNV
 # BAYTAlVTMQ4wDAYDVQQIDAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjERMA8GA1UE
 # CgwIU1NMIENvcnAxLzAtBgNVBAMMJlNTTC5jb20gVGltZXN0YW1waW5nIElzc3Vp
-# bmcgUlNBIENBIFIxAhAa1gin1jS1zd6Xy6PM8NBLMAoGCCqGSM49BAMCBEYwRAIg
-# dfPYMO9fr2vY7OiL/MRkcIy0Kf1uHQuEqP65khjHcWcCIDGfNtKs9sFxiJn+Tb9q
-# 8pKQnmKU0p1z1XIYAVFyACZx
+# bmcgUlNBIENBIFIxAhAa1gin1jS1zd6Xy6PM8NBLMAoGCCqGSM49BAMCBEgwRgIh
+# AOjbAUxc47aAJ/COgk4gV6si1IWnV6VQV00c8VZy9O4mAiEA42EUSCRxI7xvXDxI
+# THqefdonAT5yP8mDOxvyAj5Mswo=
 # SIG # End signature block
