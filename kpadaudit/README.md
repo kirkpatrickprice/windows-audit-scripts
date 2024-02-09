@@ -35,8 +35,8 @@ Installation is as simple as copying or cloning the PowerShell script to your sy
 ### PowerShell direct download...
 ```
 Invoke-WebRequest -uri https://raw.githubusercontent.com/kirkpatrickprice/windows-audit-scripts/main/kpadaudit/kpadaudit.ps1 -OutFile kpadaudit.ps1
-Get-AuthenticodeSignature .\kpwinaudit.ps1
-unblock-file ./kpwinaudit.ps1
+Get-AuthenticodeSignature .\kpadaudit.ps1
+unblock-file ./kpadaudit.ps1
 ```
 
 ### From your browser
