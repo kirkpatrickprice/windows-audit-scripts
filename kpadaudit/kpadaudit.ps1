@@ -1,4 +1,4 @@
-<#
+﻿<#
 KP Active Directory Auditor
 Author: Randy Bartels
 0.1.0   Initial release
@@ -6,7 +6,7 @@ Author: Randy Bartels
 0.1.2   Change output file encoding to ASCII
 0.1.3   Fix ASCII Art formatting: replaced ` with ' to resolve rendering issues and added space above the first K to align tops of letters
 0.1.4   (Feb 8, 2024) Add AllowReversibleEncryption and UseDESKeyOnly to Get-ADUser check (PCI DSS v4 8.3.2)
-0.1.5   (July 23, 2025) 
+0.1.5   (July 23, 2025)
             Remove requirement for Enterprise Admin permissions
             Collect domain information using Get-ADDomain
 #>
@@ -28,15 +28,15 @@ Author: Randy Bartels
 
     NOTE: This script is signed by KirkpatrickPrice using an Authenticode signature.  Use "Get-AuthenticodeSignature .\kpadaudit.ps1" to confirm the validity of the signature.
 .PARAMETER OutPath
-    The path to use for the output file.  
-    
+    The path to use for the output file.
+
     If not specified, the default is to place it on the user's Desktop, but this might not work well on OneDrive-synced folders.  You can override the default by specifying a path here.
 
     NOTE: A check is made to validate that the path exists and the script will terminate if it does not.  Use tab-completion to reduce path-not-found errors.
 
 .EXAMPLE
     Default run without any parameters.  Output file goes to the users' desktop.  User will be prompted to enable Windows Time Service.
-    
+
     ./kpwinaudit.ps1
 
 .EXAMPLE
@@ -52,7 +52,7 @@ Author: Randy Bartels
 .NOTES
     Author: Randy Bartels
     Official location:  https://github.com/kirkpatrickprice/windows-audit-scripts
-    Bug reports:        https://github.com/kirkpatrickprice/windows-audit-scripts/issues 
+    Bug reports:        https://github.com/kirkpatrickprice/windows-audit-scripts/issues
 #>
 
 [CmdletBinding()]
@@ -141,7 +141,7 @@ function Get-ForestDomains {
     catch {
         # Method 2: Fallback to .NET method
         try {
-            $domains = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest().Domains | 
+            $domains = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest().Domains |
                 Select-Object -ExpandProperty Name
             return $domains
         }
@@ -153,23 +153,23 @@ function Get-ForestDomains {
 }
 
 Write-Host "
- _   ___      _                _        _      _   ______     _          
-| | / (_)    | |              | |      (_)    | |  | ___ \   (_)         
-| |/ / _ _ __| | ___ __   __ _| |_ _ __ _  ___| | _| |_/ / __ _  ___ ___ 
+ _   ___      _                _        _      _   ______     _
+| | / (_)    | |              | |      (_)    | |  | ___ \   (_)
+| |/ / _ _ __| | ___ __   __ _| |_ _ __ _  ___| | _| |_/ / __ _  ___ ___
 |    \| | '__| |/ / '_ \ / _' | __| '__| |/ __| |/ /  __/ '__| |/ __/ _ \
 | |\  \ | |  |   <| |_) | (_| | |_| |  | | (__|   <| |  | |  | | (_|  __/
 \_|_\_/_|_| _|_|\_\ .__/ \__,_|\__|_|  |_|\___|_|\_\_|  |_|  |_|\___\___|
- / _ \     | | (_)| |        |  _  (_)             | |                   
-/ /_\ \ ___| |_ __|_| _____  | | | |_ _ __ ___  ___| |_ ___  _ __ _   _  
-|  _  |/ __| __| \ \ / / _ \ | | | | | '__/ _ \/ __| __/ _ \| '__| | | | 
-| | | | (__| |_| |\ V /  __/ | |/ /| | | |  __/ (__| || (_) | |  | |_| | 
-\_|_|_/\___|\__|_| \_/ \___| |___/ |_|_|  \___|\___|\__\___/|_|   \__, | 
- / _ \          | (_) |                                            __/ | 
-/ /_\ \_   _  __| |_| |_ ___  _ __                                |___/  
-|  _  | | | |/ _' | | __/ _ \| '__|                                      
-| | | | |_| | (_| | | || (_) | |                                         
-\_| |_/\__,_|\__,_|_|\__\___/|_|                                         
-                                                                         
+ / _ \     | | (_)| |        |  _  (_)             | |
+/ /_\ \ ___| |_ __|_| _____  | | | |_ _ __ ___  ___| |_ ___  _ __ _   _
+|  _  |/ __| __| \ \ / / _ \ | | | | | '__/ _ \/ __| __/ _ \| '__| | | |
+| | | | (__| |_| |\ V /  __/ | |/ /| | | |  __/ (__| || (_) | |  | |_| |
+\_|_|_/\___|\__|_| \_/ \___| |___/ |_|_|  \___|\___|\__\___/|_|   \__, |
+ / _ \          | (_) |                                            __/ |
+/ /_\ \_   _  __| |_| |_ ___  _ __                                |___/
+|  _  | | | |/ _' | | __/ _ \| '__|
+| | | | |_| | (_| | | || (_) | |
+\_| |_/\__,_|\__,_|_|\__\___/|_|
+
 
   Version: $KPADAVERSION
                                        "
@@ -178,7 +178,7 @@ Write-Host "
 $section="Script_Init"
     $osname = Get-CimInstance Win32_OperatingSystem -ErrorAction silentlycontinue | Select-Object Caption
     switch -Regex ($osname)
-    { 
+    {
         "Server 2022"   {$systemtype="Server2022"}
         "Server 2019"   {$systemtype="Server2019"}
         "Server 2016"   {$systemtype="Server2016"}
@@ -201,7 +201,7 @@ $section="Script_Init"
     # Collect user information
     $CurrentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
     Write-Host "Running as user: $($CurrentUser.Name)"
-    
+
     #Test for availability of required commands
     $RequiredCommands=@(
         "Get-Date",
@@ -245,7 +245,7 @@ $section="Script_Init"
     } catch {
         Write-Host "Could not determine the domain name using ""Get-ADDomain""."
         $FileName=Read-Host -Prompt "Please provide the filename to use (e.g. MyDomain.txt): "
-    } 
+    }
 
     #Set up the output path.  If we specify the OutPath variable on the command line, use that.  Otherwise, use the desktop
     #In both cases, check that the provided path is usable and throw an error if it's not.
@@ -270,7 +270,7 @@ $section="Script_Init"
     write-host "Sending output to $Outfile"
     #Remove the old file if it exists
     if (Test-Path $Outfile) {
-        Remove-Item -Path $Outfile  
+        Remove-Item -Path $Outfile
     }
 
     $command={ Get-Date -Format g }
@@ -296,13 +296,13 @@ $section="AD_Domain"
     comment -section $section -text "                   See https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-R2-and-2008/cc754918(v=ws.10)"
 
     $command={ Get-ADDomain -ErrorAction SilentlyContinue | Select-Object * | format-list }
-    Invoke-MyCommand -section $section -command $command     
+    Invoke-MyCommand -section $section -command $command
 
 $section="Domain_DomainControllers"
     header -text $section
     comment -section $section -text "This section provides a list of domain controllers for the current domain"
     $command={ Get-ADDomainController -Filter * -ErrorAction SilentlyContinue | Select-Object * | format-list }
-    Invoke-MyCommand -section $section -command $command     
+    Invoke-MyCommand -section $section -command $command
 footer -text $section
 
 $section="Domain_DefaultPasswordPolicy"
@@ -310,7 +310,7 @@ $section="Domain_DefaultPasswordPolicy"
     comment -section $section -text "This section provides the default password policy for the current domain."
     comment -section $section -text "NOTE: It's possible that there are other password policies, applied specific users or groups.  We'll get those next."
     $command={ Get-ADDefaultDomainPasswordPolicy -ErrorAction SilentlyContinue | format-list }
-    Invoke-MyCommand -section $section -command $command     
+    Invoke-MyCommand -section $section -command $command
 footer -text $section
 
 $section="Domain_FineGrainedPasswordPolicies"
@@ -319,7 +319,7 @@ $section="Domain_FineGrainedPasswordPolicies"
     comment -section $section -text "AppliesTo      This may include groups, users or other items"
     comment -section $section -text "Precedence     When conflicting settings apply, the policy with the lowest precedence wins (""We're Number One"")"
     $command={ Get-ADFineGrainedPasswordPolicy -Filter * -ErrorAction SilentlyContinue | Select-Object * | format-list }
-    Invoke-MyCommand -section $section -command $command     
+    Invoke-MyCommand -section $section -command $command
 footer -text $section
 
 $section="Group_List"
@@ -337,7 +337,7 @@ $section="Group_Admins"
     Get-ADGroup -filter 'Name -like "*Admin*"' | ForEach-Object {
         $GroupDN=$_.DistinguishedName
         $GroupName=$_.Name.Replace(" ", "")
-        $section="Group_Admins-$GroupName-ADAC"        
+        $section="Group_Admins-$GroupName-ADAC"
         $command={ Get-ADGroupMember -Identity "$GroupDN" -ErrorAction SilentlyContinue | Format-list }
         Invoke-MyCommand -section $section -command $command
         $section="Group_Admins-$GroupName-Recurse"
@@ -351,7 +351,7 @@ $section="User_List"
     header -text $section
     comment -section $section -text "This section provides list of all users defined in the domain (max 1000 records)."
     $command={  Get-ADUser -Filter * -Properties * -ErrorAction SilentlyContinue | Format-Table DistinguishedName,Name,GivenName,UserPrincipalName,Enabled,SID,LastLogonDate,PasswordLastSet,PasswordNeverExpires,PasswordExpired,PasswordNotRequired,AllowReversibleEncryption,UseDESKeyOnly -AutoSize }
-    Invoke-MyCommand -section $section -command $command     
+    Invoke-MyCommand -section $section -command $command
 footer -text $section
 
 $section="User_AdminPasswordPolicy"
@@ -362,7 +362,7 @@ $section="User_AdminPasswordPolicy"
     $InterestingGroups=@(
         "Enterprise Admins",
         "Domain Admins"
-    )   
+    )
     $AdminUsers=@()                                 #Define an array to hold the AdminUsers
     ForEach ($Group in $InterestingGroups) {
         (Get-AdGroupMember -Recursive -Identity "$Group").SamAccountName | ForEach-Object {
@@ -373,7 +373,7 @@ $section="User_AdminPasswordPolicy"
     #Iterate through the AdminUsers to get their effective password policy
     $AdminUsers | Select-Object -Unique | ForEach-Object {
         $User=$_
-        $section="User_AdminPasswordPolicy-$User"        
+        $section="User_AdminPasswordPolicy-$User"
         $command={ Get-ADUserResultantPasswordPolicy -Identity "$User" -ErrorAction SilentlyContinue | Format-list }
         Invoke-MyCommand -section $section -command $command
     }
@@ -385,22 +385,22 @@ $section="User_LastLogon90"
     header -text $section
     comment -section $section -text "This section provides list of all users who have not logged in for more than 90 days (max 1000 records)."
     $command={  Get-ADUser -Filter * -Properties LastLogonDate -ErrorAction SilentlyContinue | where-object { $_.LastLogonDate -lt (Get-Date).AddDays(-90) } | Select-Object DistinguishedName,Name,GivenName,UserPrincipalName,Enabled,LastLogonDate,PasswordLastSet,PasswordExpired -First $MaxItemCount | Sort-Object -Property LastLogonDate | Format-Table -AutoSize }
-    Invoke-MyCommand -section $section -command $command     
+    Invoke-MyCommand -section $section -command $command
 footer -text $section
 
 $section="GPOs_List"
     header -text $section
     comment -section $section -text "This section provides the names of all of the GPOs.  You'll need to request a GPO report for each interesting one (ideally in HTML format)"
     $command={ Get-GPO -All -ErrorAction SilentlyContinue | Select-Object DisplayName,DomainName,Owner,GpoStatus,CreationTime,ModificationTime | Format-Table -AutoSize }
-    Invoke-MyCommand -section $section -command $command     
+    Invoke-MyCommand -section $section -command $command
 footer -text $section
 
 
 # SIG # Begin signature block
-# MIIfYwYJKoZIhvcNAQcCoIIfVDCCH1ACAQExDzANBglghkgBZQMEAgEFADB5Bgor
+# MIIfYQYJKoZIhvcNAQcCoIIfUjCCH04CAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCodvp7LQN9Vpsb
-# a10rtzj98Jkwaf5x/WPQsdXgV1lj8KCCDOgwggZuMIIEVqADAgECAhAtYLGndXgb
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCAXygX3kEoOf9sT
+# 3KbsepHWgK1XU+F7kOsm0KUwMXv136CCDOgwggZuMIIEVqADAgECAhAtYLGndXgb
 # zFvzMEdBS+SKMA0GCSqGSIb3DQEBCwUAMHgxCzAJBgNVBAYTAlVTMQ4wDAYDVQQI
 # DAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjERMA8GA1UECgwIU1NMIENvcnAxNDAy
 # BgNVBAMMK1NTTC5jb20gQ29kZSBTaWduaW5nIEludGVybWVkaWF0ZSBDQSBSU0Eg
@@ -469,25 +469,25 @@ footer -text $section
 # up516eDap8nMLDt7TAp4z5T3NmC2gzyKVMtODWgqlBF1JhTqIDfM63kXdlV4cW3i
 # STgzN9vkbFnHI2LmvM4uVEv9XgMqyN0eS3FE0HU+MWJliymm7STheh2ENH+kF3y0
 # rH0/NVjLw78a3Z9UVm1F5VPziIorMaPKPlDRADTsJwjDZ8Zc6Gi/zy4WZbg8Zv87
-# spWrmo2dzJTw7XhQf+xkR6OdMYIR0TCCEc0CAQEwgYwweDELMAkGA1UEBhMCVVMx
+# spWrmo2dzJTw7XhQf+xkR6OdMYIRzzCCEcsCAQEwgYwweDELMAkGA1UEBhMCVVMx
 # DjAMBgNVBAgMBVRleGFzMRAwDgYDVQQHDAdIb3VzdG9uMREwDwYDVQQKDAhTU0wg
 # Q29ycDE0MDIGA1UEAwwrU1NMLmNvbSBDb2RlIFNpZ25pbmcgSW50ZXJtZWRpYXRl
 # IENBIFJTQSBSMQIQLWCxp3V4G8xb8zBHQUvkijANBglghkgBZQMEAgEFAKB8MBAG
 # CisGAQQBgjcCAQwxAjAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwGCisG
-# AQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8GCSqGSIb3DQEJBDEiBCBaD2DMp2V0
-# K7/CQ7gA5rektFxDgp3gnfe8BmWytxj1UTANBgkqhkiG9w0BAQEFAASCAYALySQO
-# 2D/SmQJWKQ1BvBH2BbyjWAF4p60qD56i+zKLtDknPMv9Yc1u9CruewMGbFuikQti
-# tgiQ7CbpmDHa8cIApJfdWjDGvRjJ5HDCoB8FU2d6Q4qL5NeZ8UO+xQCbRlmCTruE
-# R/6EGHWBijxvndGt+LKYD++CffPfKz9AaJifDQ07QzmbfgnURdhV2tob7E6XRQ03
-# H34Q4jrHfhR17RuFfa2PCS7Ja0aJcL0jyMRjGWMjKBQTXlb65Hzxn2JC6goDcMgN
-# H5GKEB7yeQVuy8rpo0RTHQ9QugKTZltMgtwxSNbqNP7EV20aVETbUV5QYiWwjz/t
-# i6sbcXAVPUCUZ3fBxMu8wAaqMVNA2UnrpeltMdY27zzzYTmZuzNchknBToVmQ0Kh
-# TAd5ELnnVvmTCE0fkWMN0H3JlPEaJIhzRRJnvDpIkfcd55MzYFKAfCWsf0IEb1fA
-# 2j0CMj/PPuE1mGd45MDsz1P3xVgc+YWBvMkdsQ6M/hNmAxya9vtXy3PsnYqhgg8X
-# MIIPEwYKKwYBBAGCNwMDATGCDwMwgg7/BgkqhkiG9w0BBwKggg7wMIIO7AIBAzEN
+# AQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8GCSqGSIb3DQEJBDEiBCAyunW6ZYfy
+# /uU0w8cOryGY7tOpW7dLtfwW5cDVz9aAbjANBgkqhkiG9w0BAQEFAASCAYAeUhXb
+# F5NjJuk8RGxtnu1yd2/tg+LLlxHwbqSMJ7ZaYDiAnoKSyTP8atHp+1xRNKEXida2
+# KTkYLrWP4zfxHKzDWgsEizijEv+PWxbZBcAzWyZUFRHMjKzGX1gchV8YiiY2p1Pa
+# /RPCYk14UgVRoPbueb9veF95JAeVKi+a4q9acSVMwhcg7H4f8QJymzBKgnauCUie
+# WoFWEI2Y9GYw6QYTz0+2KXOsBce4NjBdtKeA4dmdo5/+PKMrMKc/8BXWX9sk550l
+# SnQ1IzbU/BRbmBtq6VWWkoo89dhE4tTEZKfwVpd4+/fYYeWTJXzcyKMKCsP/NhqE
+# 8ND4l1AMjMLts/7nlbByjwZUPqwgV4wBS+DoDdIWqZmpwCfSW6lkUKMAEQ0Rtgm2
+# Pv9PUv4BK7rlUcTeQ86m0jrlSnZpKSKR7bHdcNp8g4Djl+9JWoXF/dWuWy9RzAHY
+# Zn0KpryJ8ZtlCwDNEU++pkEHzkojosISTmFrnwxNaHtotHovDMy4aXCY9lShgg8V
+# MIIPEQYKKwYBBAGCNwMDATGCDwEwgg79BgkqhkiG9w0BBwKggg7uMIIO6gIBAzEN
 # MAsGCWCGSAFlAwQCATB3BgsqhkiG9w0BCRABBKBoBGYwZAIBAQYMKwYBBAGCqTAB
-# AwYBMDEwDQYJYIZIAWUDBAIBBQAEIGFrnM7VgbKBJFnTPJhHJIWdxdER0K7aupGj
-# 0Fg1VauZAghVcx0utbiHFBgPMjAyNTA3MjMxNjM1NDRaMAMCAQGgggwAMIIE/DCC
+# AwYBMDEwDQYJYIZIAWUDBAIBBQAEIEH3zzzQIt7s9fW/3pPtU+k12mmYYeXPX2J+
+# DgJ0j0ovAgg9MKKOJ+Y7JxgPMjAyNTA3MjMyMTU1MjBaMAMCAQGgggwAMIIE/DCC
 # AuSgAwIBAgIQWlqs6Bo1brRiho1XfeA9xzANBgkqhkiG9w0BAQsFADBzMQswCQYD
 # VQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0b24xETAPBgNV
 # BAoMCFNTTCBDb3JwMS8wLQYDVQQDDCZTU0wuY29tIFRpbWVzdGFtcGluZyBJc3N1
@@ -551,18 +551,18 @@ footer -text $section
 # 0BaMqTa6LWzWItgBjGcObXeMxmbQqlEz2YtAcErkZvh0WABDDE4U8GyV/32FdaAv
 # JgTfe9MiL2nSBioYe/g5mHUSWAay/Ip1RQmQCvmF9sNfqlhJwkjy/1U1ibUkTIUB
 # X3HgymyQvqQTZLLys6pL2tCdWcjI9YuLw30rgZm8+K387L7ycUvqrmQ3ZJlujHl3
-# r1hgV76s3WwMPgKk1bAEFMj+rRXimSC+Ev30hXZdqyMdl/il5Ksd0vhGMYICWTCC
-# AlUCAQEwgYcwczELMAkGA1UEBhMCVVMxDjAMBgNVBAgMBVRleGFzMRAwDgYDVQQH
+# r1hgV76s3WwMPgKk1bAEFMj+rRXimSC+Ev30hXZdqyMdl/il5Ksd0vhGMYICVzCC
+# AlMCAQEwgYcwczELMAkGA1UEBhMCVVMxDjAMBgNVBAgMBVRleGFzMRAwDgYDVQQH
 # DAdIb3VzdG9uMREwDwYDVQQKDAhTU0wgQ29ycDEvMC0GA1UEAwwmU1NMLmNvbSBU
 # aW1lc3RhbXBpbmcgSXNzdWluZyBSU0EgQ0EgUjECEFparOgaNW60YoaNV33gPccw
 # CwYJYIZIAWUDBAIBoIIBYTAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwHAYJ
-# KoZIhvcNAQkFMQ8XDTI1MDcyMzE2MzU0NFowKAYJKoZIhvcNAQk0MRswGTALBglg
-# hkgBZQMEAgGhCgYIKoZIzj0EAwIwLwYJKoZIhvcNAQkEMSIEIFSG78BgvPc7ZUY8
-# MFMsYb7EGKDXuhDb3Q14Sfigo+O/MIHJBgsqhkiG9w0BCRACLzGBuTCBtjCBszCB
+# KoZIhvcNAQkFMQ8XDTI1MDcyMzIxNTUyMFowKAYJKoZIhvcNAQk0MRswGTALBglg
+# hkgBZQMEAgGhCgYIKoZIzj0EAwIwLwYJKoZIhvcNAQkEMSIEIAsHqirTiWdVPjrZ
+# HANpwNSORnQ/ts1V1cQMRpT9wP73MIHJBgsqhkiG9w0BCRACLzGBuTCBtjCBszCB
 # sAQgnXF/jcI3ZarOXkqw4fV115oX1Bzu2P2v7wP9Pb2JR+cwgYswd6R1MHMxCzAJ
 # BgNVBAYTAlVTMQ4wDAYDVQQIDAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjERMA8G
 # A1UECgwIU1NMIENvcnAxLzAtBgNVBAMMJlNTTC5jb20gVGltZXN0YW1waW5nIElz
-# c3VpbmcgUlNBIENBIFIxAhBaWqzoGjVutGKGjVd94D3HMAoGCCqGSM49BAMCBEgw
-# RgIhAOOeB8gYv+FfUhOe7Y5wSbvVEWk9Q44Av5DHZwEiiAlkAiEA3QEapmaFrOTn
-# ZugouywtUUgqMWvZ49DV6+E54m2ZECY=
+# c3VpbmcgUlNBIENBIFIxAhBaWqzoGjVutGKGjVd94D3HMAoGCCqGSM49BAMCBEYw
+# RAIgBnc3QvtqlnELgKaHc1LUC67oUBRsFAFrdWOrmi+e9v4CICO5B6tGZCEesG76
+# 9rKS+19VqIbX6+Z6ypsSJcMuhF7E
 # SIG # End signature block

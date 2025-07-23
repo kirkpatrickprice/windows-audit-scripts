@@ -8,7 +8,6 @@ This script is used by KirkpatrickPrice auditors to collect information from Mic
 * Microsoft RSAT module for Active Directory, specifically the following commands
 ```
 Get-ADForest
-Get-ADDomain
 Get-ADDomainController
 Get-ADDefaultDomainPasswordPolicy
 Get-ADFineGrainedPasswordPolicy
@@ -29,33 +28,52 @@ Additionally, `git commits` are also signed and validated by GitHub.  Check the 
 
 Installation is as simple as copying or cloning the PowerShell script to your system.
 
-### If you have Git installed...
-`git clone https://github.com/kirkpatrickprice/windows-audit-scripts`
+### Copying directly from GitHub...
+
+1. Left-click on the `kpadaudit.ps1` file above
+2. Rick-click on the "Raw" link at the top-right of the next page
+3. Select `Save link as...`
+4. Save the `kpadaudit.ps1` file to your favorite location
+5. Open PowerShell and execute the following:
+
+```powershell
+# Change to the directory where you saved the file
+cd \path\to\saved\file
+
+# Validate the Authenticode Signature
+Get-AuthenticodeSignature .\kpadaudit.ps1
+
+# Mark the file as safe
+unblock-file .\kpadaudit.ps1
+```
 
 ### PowerShell direct download...
-```
+```powershell
+# Download the file with PowerShell's built in web requiest utility
 Invoke-WebRequest -uri https://raw.githubusercontent.com/kirkpatrickprice/windows-audit-scripts/main/kpadaudit/kpadaudit.ps1 -OutFile kpadaudit.ps1
+
+# Validate the Authenticode Signature
 Get-AuthenticodeSignature .\kpadaudit.ps1
+
+# Mark the file as safe
 unblock-file ./kpadaudit.ps1
 ```
-
-### From your browser
-1. Click on the script above
-2. "Rick-click/Save As..." on the "Raw" link on the far-right (make sure to save the "Raw" link or else you'll get HTML).
 
 ## Usage and Results
 Launch a PowerShell window as Administrator and run:
 
-`Get-AuthenticodeSignature ./kpadaudit.ps1`
+```powershell
+# Change to the directory where you saved the file
+cd \path\to\saved\file
 
-to check the script's validity (if it reports the status as `HashMismatch` do not run the script and contact your auditor / only run it if it reports `Valid`)
-
-`kpadaudit.ps1`
+# Run the auditing script
+kpadaudit.ps1
+```
 
 That's it.  The end result is a text file named `<desktop>\<domain_name>.txt`.  
 
 In certain situations, the default location produces output errors or suffers severe performance problems.  This seems to be when the Desktop folder is itself synchronized through OneDrive or over a WAN link.  If this happens, you can use the `-OutPath` parameter to override the default folder.  The filename will be still be named after the domain name.
 
-You can also use `Get-Help ./kpadaudit.ps1` (with the usual variations such as `-Detailed` or `-Examples` to obtain additional information.
+You can also use `Get-Help ./kpadaudit.ps1` (with the usual variations such as `-Detailed` or `-Examples` to obtain additional information).
 
-Your auditor will ask you to upload all of the output files from the identified sample as a ZIP to the Online Audit Manager portal.
+Your auditor will ask you to upload all of the result to Online Audit Manager for review and analysis.
