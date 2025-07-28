@@ -9,6 +9,9 @@ Author: Randy Bartels
 0.1.5   (July 23, 2025)
             Remove requirement for Enterprise Admin permissions
             Collect domain information using Get-ADDomain
+0.1.6   (July 28, 2025)
+            Fix Group_Admins section to limit searches to built-in admin groups
+            Limit Users_List and Users_LastLogon90 to 1000 records
 #>
 
 <#
@@ -71,10 +74,9 @@ param(
 
 Clear-Host
 
-$KPADAVERSION="0.1.5"
+$KPADAVERSION="0.1.6"
 $OutWidth=512                   #Width to use for the outfile / setting high to avoid line truncation "..."
 $MaxItemCount=1000              #Maximum number of items to return for Get-ADUser and Get-ADGroup
-$BugReportsURL="https://github.com/kirkpatrickprice/windows-audit-scripts/issues"
 
 function header {
   param (
@@ -325,7 +327,7 @@ footer -text $section
 $section="Group_List"
     header -text $section
     comment -section $section -text "This section provides list of all groups defined in the domain (max 1000 records)."
-    $command={ Get-ADGroup -Filter * -ErrorAction SilentlyContinue | Select-Object -First $MaxItemCount | Format-Table -AutoSize }
+    $command={ Get-ADGroup -Filter * -ResultSetSize $MaxItemCount -ErrorAction SilentlyContinue | Format-Table -AutoSize }
     Invoke-MyCommand -section $section -command $command
 footer -text $section
 
@@ -334,6 +336,25 @@ $section="Group_Admins"
     comment -section $section -text "This section provides information on any groups with ""Admin"" in the name."
     comment -section $section -text "First, this displays the Group Membership exactly as it appears in ADAC."
     comment -section $section -text "Then, it recurses each member group to get to the individual users with admin persmissions"
+    $builtinAdminGroups=@(
+        "Domain Admins",
+        "Enterprise Admins",
+        "Schema Admins",
+        "Administrators"
+    )
+    foreach ($groupName in $builtinAdminGroups) {
+        try {
+            $section="Group_Admins-$groupName-ADAC"
+            $command={ Get-ADGroupMember -Identity "$groupName" -ErrorAction SilentlyContinue | Format-list }
+            Invoke-MyCommand -section $section -command $command
+            $section="Group_Admins-$groupName-Recurse"
+            $command={ Get-ADGroupMember -Identity "$groupName" -Recursive -ErrorAction SilentlyContinue | Format-Table -AutoSize }
+            Invoke-MyCommand -section $section -command $command
+        } catch {
+            Write-Error "Group $groupName does not exist."
+        }
+    }
+
     Get-ADGroup -filter 'Name -like "*Admin*"' | ForEach-Object {
         $GroupDN=$_.DistinguishedName
         $GroupName=$_.Name.Replace(" ", "")
@@ -350,7 +371,7 @@ footer -text $section
 $section="User_List"
     header -text $section
     comment -section $section -text "This section provides list of all users defined in the domain (max 1000 records)."
-    $command={  Get-ADUser -Filter * -Properties * -ErrorAction SilentlyContinue | Format-Table DistinguishedName,Name,GivenName,UserPrincipalName,Enabled,SID,LastLogonDate,PasswordLastSet,PasswordNeverExpires,PasswordExpired,PasswordNotRequired,AllowReversibleEncryption,UseDESKeyOnly -AutoSize }
+    $command={  Get-ADUser -Filter * -Properties LastLogonDate,PasswordLastSet,PasswordNeverExpires,PasswordExpired,PasswordNotRequired,AllowReversibleEncryption,UseDESKeyOnly -ResultSetSize $MaxItemCount -ErrorAction SilentlyContinue | Format-Table DistinguishedName,Name,GivenName,UserPrincipalName,Enabled,SID,LastLogonDate,PasswordLastSet,PasswordNeverExpires,PasswordExpired,PasswordNotRequired,AllowReversibleEncryption,UseDESKeyOnly -AutoSize }
     Invoke-MyCommand -section $section -command $command
 footer -text $section
 
@@ -384,7 +405,8 @@ footer -text $section
 $section="User_LastLogon90"
     header -text $section
     comment -section $section -text "This section provides list of all users who have not logged in for more than 90 days (max 1000 records)."
-    $command={  Get-ADUser -Filter * -Properties LastLogonDate -ErrorAction SilentlyContinue | where-object { $_.LastLogonDate -lt (Get-Date).AddDays(-90) } | Select-Object DistinguishedName,Name,GivenName,UserPrincipalName,Enabled,LastLogonDate,PasswordLastSet,PasswordExpired -First $MaxItemCount | Sort-Object -Property LastLogonDate | Format-Table -AutoSize }
+    $CutoffDate = (Get-Date).AddDays(-90)
+    $command={ Get-ADUser -Filter "LastLogonDate -lt '$CutoffDate' -or -not LastLogonDate -like '*'" -Properties LastLogonDate,PasswordLastSet,PasswordExpired -ResultSetSize $MaxItemCount -ErrorAction SilentlyContinue | Select-Object DistinguishedName,Name,GivenName,UserPrincipalName,Enabled,LastLogonDate,PasswordLastSet,PasswordExpired | Sort-Object -Property LastLogonDate | Format-Table -AutoSize }
     Invoke-MyCommand -section $section -command $command
 footer -text $section
 
@@ -397,10 +419,10 @@ footer -text $section
 
 
 # SIG # Begin signature block
-# MIIfYQYJKoZIhvcNAQcCoIIfUjCCH04CAQExDzANBglghkgBZQMEAgEFADB5Bgor
+# MIIfYwYJKoZIhvcNAQcCoIIfVDCCH1ACAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCAXygX3kEoOf9sT
-# 3KbsepHWgK1XU+F7kOsm0KUwMXv136CCDOgwggZuMIIEVqADAgECAhAtYLGndXgb
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCBzSF8+2u8iSGY8
+# ZrzxJtrpWMmlW4XqfBN7h+iBOlooYKCCDOgwggZuMIIEVqADAgECAhAtYLGndXgb
 # zFvzMEdBS+SKMA0GCSqGSIb3DQEBCwUAMHgxCzAJBgNVBAYTAlVTMQ4wDAYDVQQI
 # DAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjERMA8GA1UECgwIU1NMIENvcnAxNDAy
 # BgNVBAMMK1NTTC5jb20gQ29kZSBTaWduaW5nIEludGVybWVkaWF0ZSBDQSBSU0Eg
@@ -469,25 +491,25 @@ footer -text $section
 # up516eDap8nMLDt7TAp4z5T3NmC2gzyKVMtODWgqlBF1JhTqIDfM63kXdlV4cW3i
 # STgzN9vkbFnHI2LmvM4uVEv9XgMqyN0eS3FE0HU+MWJliymm7STheh2ENH+kF3y0
 # rH0/NVjLw78a3Z9UVm1F5VPziIorMaPKPlDRADTsJwjDZ8Zc6Gi/zy4WZbg8Zv87
-# spWrmo2dzJTw7XhQf+xkR6OdMYIRzzCCEcsCAQEwgYwweDELMAkGA1UEBhMCVVMx
+# spWrmo2dzJTw7XhQf+xkR6OdMYIR0TCCEc0CAQEwgYwweDELMAkGA1UEBhMCVVMx
 # DjAMBgNVBAgMBVRleGFzMRAwDgYDVQQHDAdIb3VzdG9uMREwDwYDVQQKDAhTU0wg
 # Q29ycDE0MDIGA1UEAwwrU1NMLmNvbSBDb2RlIFNpZ25pbmcgSW50ZXJtZWRpYXRl
 # IENBIFJTQSBSMQIQLWCxp3V4G8xb8zBHQUvkijANBglghkgBZQMEAgEFAKB8MBAG
 # CisGAQQBgjcCAQwxAjAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwGCisG
-# AQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8GCSqGSIb3DQEJBDEiBCAyunW6ZYfy
-# /uU0w8cOryGY7tOpW7dLtfwW5cDVz9aAbjANBgkqhkiG9w0BAQEFAASCAYAeUhXb
-# F5NjJuk8RGxtnu1yd2/tg+LLlxHwbqSMJ7ZaYDiAnoKSyTP8atHp+1xRNKEXida2
-# KTkYLrWP4zfxHKzDWgsEizijEv+PWxbZBcAzWyZUFRHMjKzGX1gchV8YiiY2p1Pa
-# /RPCYk14UgVRoPbueb9veF95JAeVKi+a4q9acSVMwhcg7H4f8QJymzBKgnauCUie
-# WoFWEI2Y9GYw6QYTz0+2KXOsBce4NjBdtKeA4dmdo5/+PKMrMKc/8BXWX9sk550l
-# SnQ1IzbU/BRbmBtq6VWWkoo89dhE4tTEZKfwVpd4+/fYYeWTJXzcyKMKCsP/NhqE
-# 8ND4l1AMjMLts/7nlbByjwZUPqwgV4wBS+DoDdIWqZmpwCfSW6lkUKMAEQ0Rtgm2
-# Pv9PUv4BK7rlUcTeQ86m0jrlSnZpKSKR7bHdcNp8g4Djl+9JWoXF/dWuWy9RzAHY
-# Zn0KpryJ8ZtlCwDNEU++pkEHzkojosISTmFrnwxNaHtotHovDMy4aXCY9lShgg8V
-# MIIPEQYKKwYBBAGCNwMDATGCDwEwgg79BgkqhkiG9w0BBwKggg7uMIIO6gIBAzEN
+# AQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8GCSqGSIb3DQEJBDEiBCAtc9hV2U5Q
+# ZJTqi5ZA34z/Tkp2KIoNsyOHgZfpPlNA7jANBgkqhkiG9w0BAQEFAASCAYAdtvC7
+# HNZRuHAsmDDT2TmGr6FHYjeA5Kt65PYdbq0WmGBxzURnKjTkGuedeUVfYhe3AlHk
+# uJLqq9hIKhqPFRslqiECGA0EiCXKjkN/U0NeGqsoj2qSTRY/EMBJUF5gLer4nqm4
+# USL82WEnF6aQe9+hs3f0GK37Sew0LxvSwL8GeYQagC76V8W1GR1ZrSSc57hYpUUu
+# wPeJW0f2eCR7oz4H1wpmdJKQfj1fSuVhdUJzqkySmjZ0FM43G5R0OjbXOAhl+2Z1
+# qGVRhfeI6O65l+KdLYL1x4WIMJ4RS6Tq8CEVwshHq7uaVr61gjep44q8u4XKqpbW
+# jZrFjPbL2kDF/3+ajnKwJiCFLdsUc6tsB5g/RO8w3x1kkLSZUoN0V9N6KMwXUeb0
+# 3dYBpLdEvzTU7jD2W3Rt0WE15L6EL7Wyq672Cu0Irs0wlKenZzSOCx9hDm+hsTMR
+# foQ3BGJM1/jVQQu4Ox0xCTifLjpUEqDbylnd7UFAeaDSD66uoK3IDYxquMWhgg8X
+# MIIPEwYKKwYBBAGCNwMDATGCDwMwgg7/BgkqhkiG9w0BBwKggg7wMIIO7AIBAzEN
 # MAsGCWCGSAFlAwQCATB3BgsqhkiG9w0BCRABBKBoBGYwZAIBAQYMKwYBBAGCqTAB
-# AwYBMDEwDQYJYIZIAWUDBAIBBQAEIEH3zzzQIt7s9fW/3pPtU+k12mmYYeXPX2J+
-# DgJ0j0ovAgg9MKKOJ+Y7JxgPMjAyNTA3MjMyMTU1MjBaMAMCAQGgggwAMIIE/DCC
+# AwYBMDEwDQYJYIZIAWUDBAIBBQAEIIlPklLs8VsHUMChneT/JWaiz+zQmyvJ8i8T
+# YzZoT4TvAggs0StxNmRrPBgPMjAyNTA3MjgxNjM3MDBaMAMCAQGgggwAMIIE/DCC
 # AuSgAwIBAgIQWlqs6Bo1brRiho1XfeA9xzANBgkqhkiG9w0BAQsFADBzMQswCQYD
 # VQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0b24xETAPBgNV
 # BAoMCFNTTCBDb3JwMS8wLQYDVQQDDCZTU0wuY29tIFRpbWVzdGFtcGluZyBJc3N1
@@ -551,18 +573,18 @@ footer -text $section
 # 0BaMqTa6LWzWItgBjGcObXeMxmbQqlEz2YtAcErkZvh0WABDDE4U8GyV/32FdaAv
 # JgTfe9MiL2nSBioYe/g5mHUSWAay/Ip1RQmQCvmF9sNfqlhJwkjy/1U1ibUkTIUB
 # X3HgymyQvqQTZLLys6pL2tCdWcjI9YuLw30rgZm8+K387L7ycUvqrmQ3ZJlujHl3
-# r1hgV76s3WwMPgKk1bAEFMj+rRXimSC+Ev30hXZdqyMdl/il5Ksd0vhGMYICVzCC
-# AlMCAQEwgYcwczELMAkGA1UEBhMCVVMxDjAMBgNVBAgMBVRleGFzMRAwDgYDVQQH
+# r1hgV76s3WwMPgKk1bAEFMj+rRXimSC+Ev30hXZdqyMdl/il5Ksd0vhGMYICWTCC
+# AlUCAQEwgYcwczELMAkGA1UEBhMCVVMxDjAMBgNVBAgMBVRleGFzMRAwDgYDVQQH
 # DAdIb3VzdG9uMREwDwYDVQQKDAhTU0wgQ29ycDEvMC0GA1UEAwwmU1NMLmNvbSBU
 # aW1lc3RhbXBpbmcgSXNzdWluZyBSU0EgQ0EgUjECEFparOgaNW60YoaNV33gPccw
 # CwYJYIZIAWUDBAIBoIIBYTAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwHAYJ
-# KoZIhvcNAQkFMQ8XDTI1MDcyMzIxNTUyMFowKAYJKoZIhvcNAQk0MRswGTALBglg
-# hkgBZQMEAgGhCgYIKoZIzj0EAwIwLwYJKoZIhvcNAQkEMSIEIAsHqirTiWdVPjrZ
-# HANpwNSORnQ/ts1V1cQMRpT9wP73MIHJBgsqhkiG9w0BCRACLzGBuTCBtjCBszCB
+# KoZIhvcNAQkFMQ8XDTI1MDcyODE2MzcwMFowKAYJKoZIhvcNAQk0MRswGTALBglg
+# hkgBZQMEAgGhCgYIKoZIzj0EAwIwLwYJKoZIhvcNAQkEMSIEIJRJREwqplIyHegb
+# Jmmc7XvUiPijn7yIT6tLQbe/D7iKMIHJBgsqhkiG9w0BCRACLzGBuTCBtjCBszCB
 # sAQgnXF/jcI3ZarOXkqw4fV115oX1Bzu2P2v7wP9Pb2JR+cwgYswd6R1MHMxCzAJ
 # BgNVBAYTAlVTMQ4wDAYDVQQIDAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjERMA8G
 # A1UECgwIU1NMIENvcnAxLzAtBgNVBAMMJlNTTC5jb20gVGltZXN0YW1waW5nIElz
-# c3VpbmcgUlNBIENBIFIxAhBaWqzoGjVutGKGjVd94D3HMAoGCCqGSM49BAMCBEYw
-# RAIgBnc3QvtqlnELgKaHc1LUC67oUBRsFAFrdWOrmi+e9v4CICO5B6tGZCEesG76
-# 9rKS+19VqIbX6+Z6ypsSJcMuhF7E
+# c3VpbmcgUlNBIENBIFIxAhBaWqzoGjVutGKGjVd94D3HMAoGCCqGSM49BAMCBEgw
+# RgIhAL6I69R1fMjfmy5xxJETZ3nSSJKzbZtbi4dkXr+563m3AiEA54ZTVsQElIfU
+# wT3lEEYWgILKS/D6w4wgJq5SsNJj/EY=
 # SIG # End signature block
