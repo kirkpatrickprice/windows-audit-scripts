@@ -7,12 +7,11 @@ This script is used by KirkpatrickPrice auditors to collect information from Mic
 ## Critical dependencies ##
 * Microsoft RSAT module for Active Directory, specifically the following commands
 ```
-Get-ADForest
+Get-ADDomain
 Get-ADDomainController
 Get-ADDefaultDomainPasswordPolicy
 Get-ADFineGrainedPasswordPolicy
 Get-ADUser
-Get-ADDomain
 Get-ADGroup
 Get-ADGroupMember
 Get-ADUserResultantPasswordPolicy
