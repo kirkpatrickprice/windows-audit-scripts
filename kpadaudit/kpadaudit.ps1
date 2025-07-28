@@ -274,15 +274,17 @@ $section="Script_Init"
     if (Test-Path $Outfile) {
         Remove-Item -Path $Outfile
     }
-
-    $command={ Get-Date -Format g }
-    Invoke-MyCommand -section $section -command $command
-
-    comment -section $section -text "System type is detected as $systemtype."
-
+    
     write-host -ForegroundColor Green "Pre-flight checks complete.  Proceeding..."
 
+    header -text $section
+        $command={ Get-Date -Format g }
+        Invoke-MyCommand -section $section -command $command
+
+        comment -section $section -text "System type is detected as $systemtype."
+
 footer -text $section
+
 
 $section="AD_DomainList"
     header -text $section
@@ -299,6 +301,7 @@ $section="AD_Domain"
 
     $command={ Get-ADDomain -ErrorAction SilentlyContinue | Select-Object * | format-list }
     Invoke-MyCommand -section $section -command $command
+footer -text $section
 
 $section="Domain_DomainControllers"
     header -text $section
@@ -371,7 +374,7 @@ footer -text $section
 $section="User_List"
     header -text $section
     comment -section $section -text "This section provides list of all users defined in the domain (max 1000 records)."
-    $command={  Get-ADUser -Filter * -Properties LastLogonDate,PasswordLastSet,PasswordNeverExpires,PasswordExpired,PasswordNotRequired,AllowReversibleEncryption,UseDESKeyOnly -ResultSetSize $MaxItemCount -ErrorAction SilentlyContinue | Format-Table DistinguishedName,Name,GivenName,UserPrincipalName,Enabled,SID,LastLogonDate,PasswordLastSet,PasswordNeverExpires,PasswordExpired,PasswordNotRequired,AllowReversibleEncryption,UseDESKeyOnly -AutoSize }
+    $command={  Get-ADUser -Filter * -Properties LastLogonDate,PasswordLastSet,PasswordNeverExpires,PasswordExpired,PasswordNotRequired,AllowReversiblePasswordEncryption,UseDESKeyOnly -ResultSetSize $MaxItemCount -ErrorAction SilentlyContinue | Format-Table DistinguishedName,Name,GivenName,UserPrincipalName,Enabled,SID,LastLogonDate,PasswordLastSet,PasswordNeverExpires,PasswordExpired,PasswordNotRequired,AllowReversiblePasswordEncryption,UseDESKeyOnly -AutoSize }
     Invoke-MyCommand -section $section -command $command
 footer -text $section
 
@@ -417,12 +420,11 @@ $section="GPOs_List"
     Invoke-MyCommand -section $section -command $command
 footer -text $section
 
-
 # SIG # Begin signature block
 # MIIfYwYJKoZIhvcNAQcCoIIfVDCCH1ACAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCBzSF8+2u8iSGY8
-# ZrzxJtrpWMmlW4XqfBN7h+iBOlooYKCCDOgwggZuMIIEVqADAgECAhAtYLGndXgb
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCAa2RWEvvImRHiv
+# l4pKh46i2rxR2IIOcChc+1+o5Vjzt6CCDOgwggZuMIIEVqADAgECAhAtYLGndXgb
 # zFvzMEdBS+SKMA0GCSqGSIb3DQEBCwUAMHgxCzAJBgNVBAYTAlVTMQ4wDAYDVQQI
 # DAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjERMA8GA1UECgwIU1NMIENvcnAxNDAy
 # BgNVBAMMK1NTTC5jb20gQ29kZSBTaWduaW5nIEludGVybWVkaWF0ZSBDQSBSU0Eg
@@ -496,20 +498,20 @@ footer -text $section
 # Q29ycDE0MDIGA1UEAwwrU1NMLmNvbSBDb2RlIFNpZ25pbmcgSW50ZXJtZWRpYXRl
 # IENBIFJTQSBSMQIQLWCxp3V4G8xb8zBHQUvkijANBglghkgBZQMEAgEFAKB8MBAG
 # CisGAQQBgjcCAQwxAjAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwGCisG
-# AQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8GCSqGSIb3DQEJBDEiBCAtc9hV2U5Q
-# ZJTqi5ZA34z/Tkp2KIoNsyOHgZfpPlNA7jANBgkqhkiG9w0BAQEFAASCAYAdtvC7
-# HNZRuHAsmDDT2TmGr6FHYjeA5Kt65PYdbq0WmGBxzURnKjTkGuedeUVfYhe3AlHk
-# uJLqq9hIKhqPFRslqiECGA0EiCXKjkN/U0NeGqsoj2qSTRY/EMBJUF5gLer4nqm4
-# USL82WEnF6aQe9+hs3f0GK37Sew0LxvSwL8GeYQagC76V8W1GR1ZrSSc57hYpUUu
-# wPeJW0f2eCR7oz4H1wpmdJKQfj1fSuVhdUJzqkySmjZ0FM43G5R0OjbXOAhl+2Z1
-# qGVRhfeI6O65l+KdLYL1x4WIMJ4RS6Tq8CEVwshHq7uaVr61gjep44q8u4XKqpbW
-# jZrFjPbL2kDF/3+ajnKwJiCFLdsUc6tsB5g/RO8w3x1kkLSZUoN0V9N6KMwXUeb0
-# 3dYBpLdEvzTU7jD2W3Rt0WE15L6EL7Wyq672Cu0Irs0wlKenZzSOCx9hDm+hsTMR
-# foQ3BGJM1/jVQQu4Ox0xCTifLjpUEqDbylnd7UFAeaDSD66uoK3IDYxquMWhgg8X
+# AQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8GCSqGSIb3DQEJBDEiBCBeq58Vca3S
+# z0lM+hIQvfMYxV3FYpaDk1bln6JsGuCNFzANBgkqhkiG9w0BAQEFAASCAYAntRCt
+# B3VYLhS9RxVhcAkYb/3aICT6uolLdPccrVByFyIHrhfnZNid0EbfbnSVIu0xdZ8+
+# RLa+rsSvS8qz97bI6qkJo6ITtRqSQylfTGm92+V9uz7zxYdfScN3eU5y3H+AAKkL
+# rcR87rciKuipDy2AZvcopPrV6iv/12RHQXNzPuiRYzBgtRcCHqpb6ZjBOxgYZI5A
+# QzL/ENsAzCdJomQomcrEFuWKz1b+Ud6fJIy9RaATUb4NFcfRn/Cl/pNGUy4380M0
+# 8AiJ9bZ2gvrMRRwXFVV6MnpAZ4trot4TM8ebXJJwE3y+jPoLecg3hjikMI3K0Rx6
+# Rx8f+VuzwQakEif0pXUsamPDKpDP2TsulVpwjmrCTdOnX4dP8SYOEv+VMGgx4dDf
+# NMIlBPjHEAFK8UQS6T8IxScUQlRuwQCpMEo6p0XUN3pfo1TZe5WggcrDlaA7mEYU
+# xE5Izk7aqLenMhaGcW+nSaMh0Y0k0Ukl+9GXEs6laud09YoGIDDVvla/14Chgg8X
 # MIIPEwYKKwYBBAGCNwMDATGCDwMwgg7/BgkqhkiG9w0BBwKggg7wMIIO7AIBAzEN
 # MAsGCWCGSAFlAwQCATB3BgsqhkiG9w0BCRABBKBoBGYwZAIBAQYMKwYBBAGCqTAB
-# AwYBMDEwDQYJYIZIAWUDBAIBBQAEIIlPklLs8VsHUMChneT/JWaiz+zQmyvJ8i8T
-# YzZoT4TvAggs0StxNmRrPBgPMjAyNTA3MjgxNjM3MDBaMAMCAQGgggwAMIIE/DCC
+# AwYBMDEwDQYJYIZIAWUDBAIBBQAEIM7c7TzMyyWe8Tp4rS/6d5xReTb138t8oXhP
+# moOQtNcnAgg533lUm7EarRgPMjAyNTA3MjgyMTU4NDNaMAMCAQGgggwAMIIE/DCC
 # AuSgAwIBAgIQWlqs6Bo1brRiho1XfeA9xzANBgkqhkiG9w0BAQsFADBzMQswCQYD
 # VQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0b24xETAPBgNV
 # BAoMCFNTTCBDb3JwMS8wLQYDVQQDDCZTU0wuY29tIFRpbWVzdGFtcGluZyBJc3N1
@@ -578,13 +580,13 @@ footer -text $section
 # DAdIb3VzdG9uMREwDwYDVQQKDAhTU0wgQ29ycDEvMC0GA1UEAwwmU1NMLmNvbSBU
 # aW1lc3RhbXBpbmcgSXNzdWluZyBSU0EgQ0EgUjECEFparOgaNW60YoaNV33gPccw
 # CwYJYIZIAWUDBAIBoIIBYTAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwHAYJ
-# KoZIhvcNAQkFMQ8XDTI1MDcyODE2MzcwMFowKAYJKoZIhvcNAQk0MRswGTALBglg
-# hkgBZQMEAgGhCgYIKoZIzj0EAwIwLwYJKoZIhvcNAQkEMSIEIJRJREwqplIyHegb
-# Jmmc7XvUiPijn7yIT6tLQbe/D7iKMIHJBgsqhkiG9w0BCRACLzGBuTCBtjCBszCB
+# KoZIhvcNAQkFMQ8XDTI1MDcyODIxNTg0M1owKAYJKoZIhvcNAQk0MRswGTALBglg
+# hkgBZQMEAgGhCgYIKoZIzj0EAwIwLwYJKoZIhvcNAQkEMSIEIKaP9uWjsSCywqMQ
+# bvx9iKDKdCUIZhejv/mwIojjM4ZTMIHJBgsqhkiG9w0BCRACLzGBuTCBtjCBszCB
 # sAQgnXF/jcI3ZarOXkqw4fV115oX1Bzu2P2v7wP9Pb2JR+cwgYswd6R1MHMxCzAJ
 # BgNVBAYTAlVTMQ4wDAYDVQQIDAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjERMA8G
 # A1UECgwIU1NMIENvcnAxLzAtBgNVBAMMJlNTTC5jb20gVGltZXN0YW1waW5nIElz
 # c3VpbmcgUlNBIENBIFIxAhBaWqzoGjVutGKGjVd94D3HMAoGCCqGSM49BAMCBEgw
-# RgIhAL6I69R1fMjfmy5xxJETZ3nSSJKzbZtbi4dkXr+563m3AiEA54ZTVsQElIfU
-# wT3lEEYWgILKS/D6w4wgJq5SsNJj/EY=
+# RgIhAJnskKJYb9IjoLUNu7NmHEZJDwsF8qCe4R7bpJrPyWWRAiEA/W9x7yrRvI0o
+# QOzM4HRmbfW1aC49fPIZVtZPJ1P+jO0=
 # SIG # End signature block
