@@ -12,6 +12,8 @@ Author: Randy Bartels
 0.1.6   (July 28, 2025)
             Fix Group_Admins section to limit searches to built-in admin groups
             Limit Users_List and Users_LastLogon90 to 1000 records
+0.1.7   (July 28, 2025)
+            Fix User_AdminPasswordPolicy section to handle errors gracefully and provide feedback
 #>
 
 <#
@@ -74,7 +76,7 @@ param(
 
 Clear-Host
 
-$KPADAVERSION="0.1.6"
+$KPADAVERSION="0.1.7"
 $OutWidth=512                   #Width to use for the outfile / setting high to avoid line truncation "..."
 $MaxItemCount=1000              #Maximum number of items to return for Get-ADUser and Get-ADGroup
 
@@ -347,27 +349,17 @@ $section="Group_Admins"
     )
     foreach ($groupName in $builtinAdminGroups) {
         try {
-            $section="Group_Admins-$groupName-ADAC"
-            $command={ Get-ADGroupMember -Identity "$groupName" -ErrorAction SilentlyContinue | Format-list }
-            Invoke-MyCommand -section $section -command $command
-            $section="Group_Admins-$groupName-Recurse"
-            $command={ Get-ADGroupMember -Identity "$groupName" -Recursive -ErrorAction SilentlyContinue | Format-Table -AutoSize }
-            Invoke-MyCommand -section $section -command $command
+            $section="Group_Admins-$($groupName.Replace(" ", "_"))-ADAC"
+                $command={ Get-ADGroupMember -Identity "$groupName" -ErrorAction SilentlyContinue | Format-list }
+                Invoke-MyCommand -section $section -command $command
+            $section="Group_Admins-$($groupName.Replace(" ", "_"))-Recurse"
+                $command={ Get-ADGroupMember -Identity "$groupName" -Recursive -ErrorAction SilentlyContinue | Format-Table -AutoSize }
+                Invoke-MyCommand -section $section -command $command
         } catch {
             Write-Error "Group $groupName does not exist."
         }
     }
 
-    Get-ADGroup -filter 'Name -like "*Admin*"' | ForEach-Object {
-        $GroupDN=$_.DistinguishedName
-        $GroupName=$_.Name.Replace(" ", "")
-        $section="Group_Admins-$GroupName-ADAC"
-        $command={ Get-ADGroupMember -Identity "$GroupDN" -ErrorAction SilentlyContinue | Format-list }
-        Invoke-MyCommand -section $section -command $command
-        $section="Group_Admins-$GroupName-Recurse"
-        $command={ Get-ADGroupMember -Identity "$GroupDN" -Recursive -ErrorAction SilentlyContinue | Format-Table -AutoSize }
-        Invoke-MyCommand -section $section -command $command
-    }
     $section="Group_Admins"
 footer -text $section
 
@@ -390,7 +382,9 @@ $section="User_AdminPasswordPolicy"
     $AdminUsers=@()                                 #Define an array to hold the AdminUsers
     ForEach ($Group in $InterestingGroups) {
         (Get-AdGroupMember -Recursive -Identity "$Group").SamAccountName | ForEach-Object {
-            $AdminUsers += "$_"
+            if (-not [string]::IsNullOrWhiteSpace($_)) {
+                $AdminUsers += "$_"
+            }
         }
     }
 
@@ -398,8 +392,14 @@ $section="User_AdminPasswordPolicy"
     $AdminUsers | Select-Object -Unique | ForEach-Object {
         $User=$_
         $section="User_AdminPasswordPolicy-$User"
-        $command={ Get-ADUserResultantPasswordPolicy -Identity "$User" -ErrorAction SilentlyContinue | Format-list }
-        Invoke-MyCommand -section $section -command $command
+        try {
+            $command={ Get-ADUserResultantPasswordPolicy -Identity "$User" -ErrorAction SilentlyContinue | Format-list }
+            Invoke-MyCommand -section $section -command $command
+        }
+        catch {
+            comment -section $section -text "Error retrieving password policy for user '$User': $($_.Exception.Message)"
+            Write-Host -BackgroundColor Black -ForegroundColor Red "Error retrieving password policy for user '$User': $($_.Exception.Message)"
+        }
     }
     $section="User_AdminPasswordPolicy"
 footer -text $section
@@ -420,11 +420,12 @@ $section="GPOs_List"
     Invoke-MyCommand -section $section -command $command
 footer -text $section
 
+
 # SIG # Begin signature block
 # MIIfYwYJKoZIhvcNAQcCoIIfVDCCH1ACAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCAa2RWEvvImRHiv
-# l4pKh46i2rxR2IIOcChc+1+o5Vjzt6CCDOgwggZuMIIEVqADAgECAhAtYLGndXgb
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCAHi8QTNWofm5zY
+# 8n5mhPoKLZqkLxMw2d3vDe3/cJXJbaCCDOgwggZuMIIEVqADAgECAhAtYLGndXgb
 # zFvzMEdBS+SKMA0GCSqGSIb3DQEBCwUAMHgxCzAJBgNVBAYTAlVTMQ4wDAYDVQQI
 # DAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjERMA8GA1UECgwIU1NMIENvcnAxNDAy
 # BgNVBAMMK1NTTC5jb20gQ29kZSBTaWduaW5nIEludGVybWVkaWF0ZSBDQSBSU0Eg
@@ -498,20 +499,20 @@ footer -text $section
 # Q29ycDE0MDIGA1UEAwwrU1NMLmNvbSBDb2RlIFNpZ25pbmcgSW50ZXJtZWRpYXRl
 # IENBIFJTQSBSMQIQLWCxp3V4G8xb8zBHQUvkijANBglghkgBZQMEAgEFAKB8MBAG
 # CisGAQQBgjcCAQwxAjAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwGCisG
-# AQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8GCSqGSIb3DQEJBDEiBCBeq58Vca3S
-# z0lM+hIQvfMYxV3FYpaDk1bln6JsGuCNFzANBgkqhkiG9w0BAQEFAASCAYAntRCt
-# B3VYLhS9RxVhcAkYb/3aICT6uolLdPccrVByFyIHrhfnZNid0EbfbnSVIu0xdZ8+
-# RLa+rsSvS8qz97bI6qkJo6ITtRqSQylfTGm92+V9uz7zxYdfScN3eU5y3H+AAKkL
-# rcR87rciKuipDy2AZvcopPrV6iv/12RHQXNzPuiRYzBgtRcCHqpb6ZjBOxgYZI5A
-# QzL/ENsAzCdJomQomcrEFuWKz1b+Ud6fJIy9RaATUb4NFcfRn/Cl/pNGUy4380M0
-# 8AiJ9bZ2gvrMRRwXFVV6MnpAZ4trot4TM8ebXJJwE3y+jPoLecg3hjikMI3K0Rx6
-# Rx8f+VuzwQakEif0pXUsamPDKpDP2TsulVpwjmrCTdOnX4dP8SYOEv+VMGgx4dDf
-# NMIlBPjHEAFK8UQS6T8IxScUQlRuwQCpMEo6p0XUN3pfo1TZe5WggcrDlaA7mEYU
-# xE5Izk7aqLenMhaGcW+nSaMh0Y0k0Ukl+9GXEs6laud09YoGIDDVvla/14Chgg8X
+# AQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8GCSqGSIb3DQEJBDEiBCChl68SU4rX
+# gsmvJJsMXmbz3ZN9LB0xKUHJNMY++hegbjANBgkqhkiG9w0BAQEFAASCAYBrE3Nc
+# xXL6fei9DPxKf9CRsS7wAV2Jzc2HlR78wmJRbrK1rX1YMWT1bOegv2L6U2A+b2EH
+# thvnWLP6nBndVfAllmDnPZR/jW00T42om5gwlLRS56kF/wyBU8Y9Pp8kRCtRFxAu
+# cuFzbP3HV+lPhtYJR6FvMXvLi33we0CpZjDXKIeVJBcPC/GGnSLPrnvXTsU8MBNn
+# z2CvMuPevsugVfnyHQyype4/dM1TkUu0bEPH8833Qsk1i6pPfnd9vAXpq1Qc/W1n
+# 97v8Gd8urQyw27C0F7vjO3hPae0ossrZKD+QCkxd0rt4cWpvyb2URakhHvpziMtJ
+# fKfkQDKl6GRH3NRLcEcPcQ2+l8jVQkPrN3oQh3UuMVBPP6sDq0bnA8+zL1JU7a9U
+# YTa/ViBtwI8iR3ME0SW0up5LVXSTKGN7y+10i5WWyLdnH0WJ2mTe/clw84CFr5yn
+# CXQIv8u4YAYL+sPd9o1Kx9qZ0hsCLmQwPpYmodyAMeBxdqP0JTfBodQxlh6hgg8X
 # MIIPEwYKKwYBBAGCNwMDATGCDwMwgg7/BgkqhkiG9w0BBwKggg7wMIIO7AIBAzEN
 # MAsGCWCGSAFlAwQCATB3BgsqhkiG9w0BCRABBKBoBGYwZAIBAQYMKwYBBAGCqTAB
-# AwYBMDEwDQYJYIZIAWUDBAIBBQAEIM7c7TzMyyWe8Tp4rS/6d5xReTb138t8oXhP
-# moOQtNcnAgg533lUm7EarRgPMjAyNTA3MjgyMTU4NDNaMAMCAQGgggwAMIIE/DCC
+# AwYBMDEwDQYJYIZIAWUDBAIBBQAEICjH8VXDt6iWG0JL4SdfKjrAq4lLK7WGOYfF
+# +c/iBa8jAghG46/9gqB9ChgPMjAyNTA3MjkwMTA1NTNaMAMCAQGgggwAMIIE/DCC
 # AuSgAwIBAgIQWlqs6Bo1brRiho1XfeA9xzANBgkqhkiG9w0BAQsFADBzMQswCQYD
 # VQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0b24xETAPBgNV
 # BAoMCFNTTCBDb3JwMS8wLQYDVQQDDCZTU0wuY29tIFRpbWVzdGFtcGluZyBJc3N1
@@ -580,13 +581,13 @@ footer -text $section
 # DAdIb3VzdG9uMREwDwYDVQQKDAhTU0wgQ29ycDEvMC0GA1UEAwwmU1NMLmNvbSBU
 # aW1lc3RhbXBpbmcgSXNzdWluZyBSU0EgQ0EgUjECEFparOgaNW60YoaNV33gPccw
 # CwYJYIZIAWUDBAIBoIIBYTAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwHAYJ
-# KoZIhvcNAQkFMQ8XDTI1MDcyODIxNTg0M1owKAYJKoZIhvcNAQk0MRswGTALBglg
-# hkgBZQMEAgGhCgYIKoZIzj0EAwIwLwYJKoZIhvcNAQkEMSIEIKaP9uWjsSCywqMQ
-# bvx9iKDKdCUIZhejv/mwIojjM4ZTMIHJBgsqhkiG9w0BCRACLzGBuTCBtjCBszCB
+# KoZIhvcNAQkFMQ8XDTI1MDcyOTAxMDU1M1owKAYJKoZIhvcNAQk0MRswGTALBglg
+# hkgBZQMEAgGhCgYIKoZIzj0EAwIwLwYJKoZIhvcNAQkEMSIEIDm5a0Q1eGaLm/h8
+# qIh/mjNaSis92EQILGJ12lN2A42jMIHJBgsqhkiG9w0BCRACLzGBuTCBtjCBszCB
 # sAQgnXF/jcI3ZarOXkqw4fV115oX1Bzu2P2v7wP9Pb2JR+cwgYswd6R1MHMxCzAJ
 # BgNVBAYTAlVTMQ4wDAYDVQQIDAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjERMA8G
 # A1UECgwIU1NMIENvcnAxLzAtBgNVBAMMJlNTTC5jb20gVGltZXN0YW1waW5nIElz
 # c3VpbmcgUlNBIENBIFIxAhBaWqzoGjVutGKGjVd94D3HMAoGCCqGSM49BAMCBEgw
-# RgIhAJnskKJYb9IjoLUNu7NmHEZJDwsF8qCe4R7bpJrPyWWRAiEA/W9x7yrRvI0o
-# QOzM4HRmbfW1aC49fPIZVtZPJ1P+jO0=
+# RgIhAKB3U7ksR853kX9u+1oOB0qrp10vJzseB+f8RuZV2D9rAiEAgMPfvWHnYnsL
+# is62QM7pSbo9aetI28uBgDevJd7qCuA=
 # SIG # End signature block

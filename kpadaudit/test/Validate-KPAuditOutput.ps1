@@ -386,6 +386,72 @@ class KPAuditValidator {
         $this.AddResult("Success", "User_LastLogon90", "Found $staleCount stale user records")
     }
     
+    [void] ValidateBuiltinAdministratorAccounts() {
+        if (-not $this.Sections.ContainsKey("Group_Admins")) {
+            return
+        }
+        
+        $sectionContent = $this.Sections["Group_Admins"]
+        
+        # Check for built-in admin groups and their administrator account patterns
+        $builtinGroups = @("Domain_Admins", "Enterprise_Admins", "Schema_Admins", "Administrators")
+        $foundAdacPatterns = @()
+        $foundRecursePatterns = @()
+        $missingAdacPatterns = @()
+        $missingRecursePatterns = @()
+        
+        foreach ($group in $builtinGroups) {
+            # Check for ADAC pattern
+            $adacPattern = "Group_Admins-$group-ADAC::distinguishedName"
+            if ($sectionContent -match [regex]::Escape($adacPattern)) {
+                $foundAdacPatterns += $group
+            }
+            else {
+                $missingAdacPatterns += $group
+            }
+            
+            # Check for Recurse pattern
+            $recursePattern = "Group_Admins-$group-Recurse::distinguishedName"
+            if ($sectionContent -match [regex]::Escape($recursePattern)) {
+                $foundRecursePatterns += $group
+            }
+            else {
+                $missingRecursePatterns += $group
+            }
+        }
+        
+        # Report ADAC validation results
+        if ($foundAdacPatterns.Count -eq $builtinGroups.Count) {
+            $this.AddResult("Success", "Group_Admins", "Found ADAC patterns for all built-in admin groups: $($foundAdacPatterns -join ', ')")
+        }
+        else {
+            if ($foundAdacPatterns.Count -gt 0) {
+                $this.AddResult("Warning", "Group_Admins", "Found ADAC patterns for: $($foundAdacPatterns -join ', '), but missing: $($missingAdacPatterns -join ', ')")
+            }
+            $this.AddResult("Error", "Group_Admins", "Missing ADAC distinguishedName patterns for built-in admin groups: $($missingAdacPatterns -join ', ')")
+        }
+        
+        # Report Recurse validation results
+        if ($foundRecursePatterns.Count -eq $builtinGroups.Count) {
+            $this.AddResult("Success", "Group_Admins", "Found Recurse patterns for all built-in admin groups: $($foundRecursePatterns -join ', ')")
+        }
+        else {
+            if ($foundRecursePatterns.Count -gt 0) {
+                $this.AddResult("Warning", "Group_Admins", "Found Recurse patterns for: $($foundRecursePatterns -join ', '), but missing: $($missingRecursePatterns -join ', ')")
+            }
+            $this.AddResult("Error", "Group_Admins", "Missing Recurse patterns for built-in admin groups: $($missingRecursePatterns -join ', ')")
+        }
+        
+        # Check for the presence of distinguishedName content indicating successful data collection
+        $distinguishedNameCount = ($sectionContent | Select-String "Group_Admins.*distinguishedName" -AllMatches).Matches.Count
+        if ($distinguishedNameCount -gt 0) {
+            $this.AddResult("Success", "Group_Admins", "Found $distinguishedNameCount distinguishedName entries indicating successful data collection")
+        }
+        else {
+            $this.AddResult("Error", "Group_Admins", "No distinguishedName entries found - collection script may have failed")
+        }
+    }
+    
     [void] ValidatePasswordPolicies() {
         # Default password policy
         if ($this.Sections.ContainsKey("Domain_DefaultPasswordPolicy")) {
@@ -520,6 +586,7 @@ class KPAuditValidator {
         $this.ValidateADDomainList()
         $this.ValidateUserList()
         $this.ValidateGroupAdmins()
+        $this.ValidateBuiltinAdministratorAccounts()
         $this.ValidateUserLastLogon90()
         $this.ValidatePasswordPolicies()
         $this.ValidateGPOs()
@@ -651,10 +718,10 @@ catch {
 }
 
 # SIG # Begin signature block
-# MIIfYQYJKoZIhvcNAQcCoIIfUjCCH04CAQExDzANBglghkgBZQMEAgEFADB5Bgor
+# MIIfYwYJKoZIhvcNAQcCoIIfVDCCH1ACAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCC69Gxikn2Pa9ps
-# iJk2J+T9zkeRX85zW05ZqbwS/dL5uKCCDOgwggZuMIIEVqADAgECAhAtYLGndXgb
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCBUXIiXiOmWBBhZ
+# aVneltyAFoOghmRuqETKLw+4HNa816CCDOgwggZuMIIEVqADAgECAhAtYLGndXgb
 # zFvzMEdBS+SKMA0GCSqGSIb3DQEBCwUAMHgxCzAJBgNVBAYTAlVTMQ4wDAYDVQQI
 # DAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjERMA8GA1UECgwIU1NMIENvcnAxNDAy
 # BgNVBAMMK1NTTC5jb20gQ29kZSBTaWduaW5nIEludGVybWVkaWF0ZSBDQSBSU0Eg
@@ -723,25 +790,25 @@ catch {
 # up516eDap8nMLDt7TAp4z5T3NmC2gzyKVMtODWgqlBF1JhTqIDfM63kXdlV4cW3i
 # STgzN9vkbFnHI2LmvM4uVEv9XgMqyN0eS3FE0HU+MWJliymm7STheh2ENH+kF3y0
 # rH0/NVjLw78a3Z9UVm1F5VPziIorMaPKPlDRADTsJwjDZ8Zc6Gi/zy4WZbg8Zv87
-# spWrmo2dzJTw7XhQf+xkR6OdMYIRzzCCEcsCAQEwgYwweDELMAkGA1UEBhMCVVMx
+# spWrmo2dzJTw7XhQf+xkR6OdMYIR0TCCEc0CAQEwgYwweDELMAkGA1UEBhMCVVMx
 # DjAMBgNVBAgMBVRleGFzMRAwDgYDVQQHDAdIb3VzdG9uMREwDwYDVQQKDAhTU0wg
 # Q29ycDE0MDIGA1UEAwwrU1NMLmNvbSBDb2RlIFNpZ25pbmcgSW50ZXJtZWRpYXRl
 # IENBIFJTQSBSMQIQLWCxp3V4G8xb8zBHQUvkijANBglghkgBZQMEAgEFAKB8MBAG
 # CisGAQQBgjcCAQwxAjAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwGCisG
-# AQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8GCSqGSIb3DQEJBDEiBCCSUE1RVWZY
-# itZr8GcGf78UNcaJb4mEku0ut4LnwPNLqTANBgkqhkiG9w0BAQEFAASCAYA2QMDh
-# JxFGAuJR7HF6+dFziGWGAkXelfHnBcCQlmKffaoWV//95uWoEq9g3IUkHK1JomKe
-# rwnTxoPaTCwFw9QX3OgQlUbIFvMje6+FNX9lDcFQLohvqMKa2G2W1RJS0SxramTC
-# 7Wl8ju2u5/P3jIW+sQyobQTdUeypputWOHfazhDz6nGAc/a0QrWCh0+NyiQZBCUL
-# DenYR7vlRbFYp2XQmrS9GQ75CP1VyjodgGJUYOcZLpniU49xtBBIQ6DlDGHrfqWJ
-# kny2k7C3pzfx+kSt0EWUjV/zWImwWnrDpvKYNU3/uOcPCI4Fj29WwO/1JoQko736
-# PNKq2ZvA0c8xfz6jh6oSeZ/FOFI2s22lrK8UPBj/Ij+rg/kFx1BCcL4aiKUHTI/N
-# eaCBbu2ibI25iz7Cp7Y+T+qoQ3kf4vRvHEYRM3ZILua2dtjBHyqw2+PNTCN+wecf
-# 4SzS91aVedtkRDsIXmAlKOs+12Lqrsxe3wgW8Ov3KLDFTAgrpVM1bwwJG1yhgg8V
-# MIIPEQYKKwYBBAGCNwMDATGCDwEwgg79BgkqhkiG9w0BBwKggg7uMIIO6gIBAzEN
+# AQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8GCSqGSIb3DQEJBDEiBCC/T8fH6IwM
+# tCLmaDxu3hgrKgf/hSBe4MBNPO8yv8ftuzANBgkqhkiG9w0BAQEFAASCAYAfaxSZ
+# TF1alJt1CzzlxN0fwbm2+CzX67xkaLjK9Vwsll+07Emjhp5o2EsuWtYcl0nTWXsJ
+# QwqERwypD2bU2iUpWlBa6sQ3z1YqxtULehyuZgm63l4hR3lN8xKVQpCc6BLl1pXt
+# 3+rei4owc8RRwzqhHJYecUALvmooKeUJEYbW1p6VSpLd3K9DWVKmzSfmNSlW51F5
+# egQz558ljCCKJS9m3DGqH0E1hFb0zm7OYDMdFwbQuQboFcN53rR24z5GFzb9xJfm
+# 5TD3y1VX1iQiqY6CXTAlo4aPoX4EieDn5KuihOiEIF95e0mK4RaXVf9QcsAJIg/O
+# 6LvAnhM9fZV3Ud7ntLg7jHFrAfdhaqJXZ6bPs0ia36NezMsQQpjPZHki4zbdEB95
+# +G7s5grVngpcTtWqi+Gk1UinyAZ81oXexJsUNcxATVysh+/QvyP4law5BiLuA5Qc
+# nIqAaVyVw/BNrrAYwEmhpGF02TNj/MArwCb35ILwQVy+DnPggBj5dyeaTdOhgg8X
+# MIIPEwYKKwYBBAGCNwMDATGCDwMwgg7/BgkqhkiG9w0BBwKggg7wMIIO7AIBAzEN
 # MAsGCWCGSAFlAwQCATB3BgsqhkiG9w0BCRABBKBoBGYwZAIBAQYMKwYBBAGCqTAB
-# AwYBMDEwDQYJYIZIAWUDBAIBBQAEIMcRd6454+vU8VLUZedGMk+OqD+gPEe+ONJW
-# ChR3WjuTAgg0OOGfd5oUvRgPMjAyNTA3MjgyMjAwMzdaMAMCAQGgggwAMIIE/DCC
+# AwYBMDEwDQYJYIZIAWUDBAIBBQAEIH4A6AlZAYac6oxHmLVF6ICft5FIE5n9r+Zg
+# GtuclaaQAggq9R9W2M1hYxgPMjAyNTA3MjkwMTA0MzhaMAMCAQGgggwAMIIE/DCC
 # AuSgAwIBAgIQWlqs6Bo1brRiho1XfeA9xzANBgkqhkiG9w0BAQsFADBzMQswCQYD
 # VQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0b24xETAPBgNV
 # BAoMCFNTTCBDb3JwMS8wLQYDVQQDDCZTU0wuY29tIFRpbWVzdGFtcGluZyBJc3N1
@@ -805,18 +872,18 @@ catch {
 # 0BaMqTa6LWzWItgBjGcObXeMxmbQqlEz2YtAcErkZvh0WABDDE4U8GyV/32FdaAv
 # JgTfe9MiL2nSBioYe/g5mHUSWAay/Ip1RQmQCvmF9sNfqlhJwkjy/1U1ibUkTIUB
 # X3HgymyQvqQTZLLys6pL2tCdWcjI9YuLw30rgZm8+K387L7ycUvqrmQ3ZJlujHl3
-# r1hgV76s3WwMPgKk1bAEFMj+rRXimSC+Ev30hXZdqyMdl/il5Ksd0vhGMYICVzCC
-# AlMCAQEwgYcwczELMAkGA1UEBhMCVVMxDjAMBgNVBAgMBVRleGFzMRAwDgYDVQQH
+# r1hgV76s3WwMPgKk1bAEFMj+rRXimSC+Ev30hXZdqyMdl/il5Ksd0vhGMYICWTCC
+# AlUCAQEwgYcwczELMAkGA1UEBhMCVVMxDjAMBgNVBAgMBVRleGFzMRAwDgYDVQQH
 # DAdIb3VzdG9uMREwDwYDVQQKDAhTU0wgQ29ycDEvMC0GA1UEAwwmU1NMLmNvbSBU
 # aW1lc3RhbXBpbmcgSXNzdWluZyBSU0EgQ0EgUjECEFparOgaNW60YoaNV33gPccw
 # CwYJYIZIAWUDBAIBoIIBYTAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwHAYJ
-# KoZIhvcNAQkFMQ8XDTI1MDcyODIyMDAzN1owKAYJKoZIhvcNAQk0MRswGTALBglg
-# hkgBZQMEAgGhCgYIKoZIzj0EAwIwLwYJKoZIhvcNAQkEMSIEILSf4OSRVmJLMhEh
-# wGNe+Oarv2RXfk38XuONqowOMWA2MIHJBgsqhkiG9w0BCRACLzGBuTCBtjCBszCB
+# KoZIhvcNAQkFMQ8XDTI1MDcyOTAxMDQzOFowKAYJKoZIhvcNAQk0MRswGTALBglg
+# hkgBZQMEAgGhCgYIKoZIzj0EAwIwLwYJKoZIhvcNAQkEMSIEIEkocaBmA+w8e7B/
+# Cf1AdFXnfE6Ag7mrLcNt2H8m5DhiMIHJBgsqhkiG9w0BCRACLzGBuTCBtjCBszCB
 # sAQgnXF/jcI3ZarOXkqw4fV115oX1Bzu2P2v7wP9Pb2JR+cwgYswd6R1MHMxCzAJ
 # BgNVBAYTAlVTMQ4wDAYDVQQIDAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjERMA8G
 # A1UECgwIU1NMIENvcnAxLzAtBgNVBAMMJlNTTC5jb20gVGltZXN0YW1waW5nIElz
-# c3VpbmcgUlNBIENBIFIxAhBaWqzoGjVutGKGjVd94D3HMAoGCCqGSM49BAMCBEYw
-# RAIgca2IE5Vr4RFl7B+eONAJ1hjoHPF9qAmY0trcTSiKduICICDHBrrspfa3uikk
-# +KS4QKd0HcDrQ0IbL+8NT89/+1Dt
+# c3VpbmcgUlNBIENBIFIxAhBaWqzoGjVutGKGjVd94D3HMAoGCCqGSM49BAMCBEgw
+# RgIhAKo8goFzQhD6qCQHKNI9CUvpb/EQYJu+hf2krIWtb/o7AiEAv2SDMoehhy+q
+# 9hBwHbmnuV/EKLWnNVzoy3NtUHMPBxo=
 # SIG # End signature block
