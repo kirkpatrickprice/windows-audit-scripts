@@ -386,6 +386,72 @@ class KPAuditValidator {
         $this.AddResult("Success", "User_LastLogon90", "Found $staleCount stale user records")
     }
     
+    [void] ValidateBuiltinAdministratorAccounts() {
+        if (-not $this.Sections.ContainsKey("Group_Admins")) {
+            return
+        }
+        
+        $sectionContent = $this.Sections["Group_Admins"]
+        
+        # Check for built-in admin groups and their administrator account patterns
+        $builtinGroups = @("Domain_Admins", "Enterprise_Admins", "Schema_Admins", "Administrators")
+        $foundAdacPatterns = @()
+        $foundRecursePatterns = @()
+        $missingAdacPatterns = @()
+        $missingRecursePatterns = @()
+        
+        foreach ($group in $builtinGroups) {
+            # Check for ADAC pattern
+            $adacPattern = "Group_Admins-$group-ADAC::distinguishedName"
+            if ($sectionContent -match [regex]::Escape($adacPattern)) {
+                $foundAdacPatterns += $group
+            }
+            else {
+                $missingAdacPatterns += $group
+            }
+            
+            # Check for Recurse pattern
+            $recursePattern = "Group_Admins-$group-Recurse::distinguishedName"
+            if ($sectionContent -match [regex]::Escape($recursePattern)) {
+                $foundRecursePatterns += $group
+            }
+            else {
+                $missingRecursePatterns += $group
+            }
+        }
+        
+        # Report ADAC validation results
+        if ($foundAdacPatterns.Count -eq $builtinGroups.Count) {
+            $this.AddResult("Success", "Group_Admins", "Found ADAC patterns for all built-in admin groups: $($foundAdacPatterns -join ', ')")
+        }
+        else {
+            if ($foundAdacPatterns.Count -gt 0) {
+                $this.AddResult("Warning", "Group_Admins", "Found ADAC patterns for: $($foundAdacPatterns -join ', '), but missing: $($missingAdacPatterns -join ', ')")
+            }
+            $this.AddResult("Error", "Group_Admins", "Missing ADAC distinguishedName patterns for built-in admin groups: $($missingAdacPatterns -join ', ')")
+        }
+        
+        # Report Recurse validation results
+        if ($foundRecursePatterns.Count -eq $builtinGroups.Count) {
+            $this.AddResult("Success", "Group_Admins", "Found Recurse patterns for all built-in admin groups: $($foundRecursePatterns -join ', ')")
+        }
+        else {
+            if ($foundRecursePatterns.Count -gt 0) {
+                $this.AddResult("Warning", "Group_Admins", "Found Recurse patterns for: $($foundRecursePatterns -join ', '), but missing: $($missingRecursePatterns -join ', ')")
+            }
+            $this.AddResult("Error", "Group_Admins", "Missing Recurse patterns for built-in admin groups: $($missingRecursePatterns -join ', ')")
+        }
+        
+        # Check for the presence of distinguishedName content indicating successful data collection
+        $distinguishedNameCount = ($sectionContent | Select-String "Group_Admins.*distinguishedName" -AllMatches).Matches.Count
+        if ($distinguishedNameCount -gt 0) {
+            $this.AddResult("Success", "Group_Admins", "Found $distinguishedNameCount distinguishedName entries indicating successful data collection")
+        }
+        else {
+            $this.AddResult("Error", "Group_Admins", "No distinguishedName entries found - collection script may have failed")
+        }
+    }
+    
     [void] ValidatePasswordPolicies() {
         # Default password policy
         if ($this.Sections.ContainsKey("Domain_DefaultPasswordPolicy")) {
@@ -520,6 +586,7 @@ class KPAuditValidator {
         $this.ValidateADDomainList()
         $this.ValidateUserList()
         $this.ValidateGroupAdmins()
+        $this.ValidateBuiltinAdministratorAccounts()
         $this.ValidateUserLastLogon90()
         $this.ValidatePasswordPolicies()
         $this.ValidateGPOs()
