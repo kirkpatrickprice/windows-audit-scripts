@@ -45,6 +45,10 @@ That's it.  The end result is a text file named `<desktop>\hostname.txt`.
 
 In certain situations, the default location produces output errors.  This seems to be when the Desktop folder is itself synchronized through OneDrive.  If this happens, you can use the `-OutPath` parameter to override the default folder.  The filename will be still be named after the host's name.
 
+## Audit Script Summary
+
+For a concise overview of the checks performed by `kpwinaudit.ps1`, see the [SUMMARY.md](SUMMARY.md) file. This summary is intended for CISOs, security analysts, and infosec professionals evaluating the script for use in security reviews and compliance audits.
+
 The Windows Time Service (`W32Time`) is needed for some of the time synchronization settings, but it is not guaranteed to be running.  This is especially the case on Windows 10 desktops, but might be the case for member servers as well.  There is a parameter `StartTimeService` that will allow the script to start the service if it's not running.  If this parameter is not set, we will also prompt the user if it's OK to start the service.  This defaults to "Yes - it is OK" after 30 seconds.  If the script started the service, then it will also stop it when it is no longer needed.  If we didn't start it, or if it was overridden when prompted, then we leave it alone.
 
 You can also use `Get-Help ./kpwinaudit.ps1` (with the usual variations such as `-Detailed` or `-Examples` to obtain additional information.
