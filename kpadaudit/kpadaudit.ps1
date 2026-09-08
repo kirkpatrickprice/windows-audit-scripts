@@ -16,6 +16,8 @@ Author: Randy Bartels
             Fix User_AdminPasswordPolicy section to handle errors gracefully and provide feedback
 0.1.8   (September 5, 2025)
             Add "Server 2025" to supported OS list.  NOTE: There is no change to PowerShell version or AD cmdlets at this time, so no additional testing was performed.
+0.2.0   (September 8, 2026)
+            Write the Script_Init timestamp with -Format o (ISO 8601, invariant culture) rather than -Format g, which rendered the host locale's short date and left the day and month order ambiguous.
 #>
 
 <#
@@ -78,7 +80,7 @@ param(
 
 Clear-Host
 
-$KPADAVERSION="0.1.8"
+$KPADAVERSION="0.2.0"
 $OutWidth=512                   #Width to use for the outfile / setting high to avoid line truncation "..."
 $MaxItemCount=1000              #Maximum number of items to return for Get-ADUser and Get-ADGroup
 
@@ -283,7 +285,7 @@ $section="Script_Init"
     write-host -ForegroundColor Green "Pre-flight checks complete.  Proceeding..."
 
     header -text $section
-        $command={ Get-Date -Format g }
+        $command={ Get-Date -Format o }
         Invoke-MyCommand -section $section -command $command
 
         comment -section $section -text "System type is detected as $systemtype."
