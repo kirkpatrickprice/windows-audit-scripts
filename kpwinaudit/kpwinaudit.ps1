@@ -61,6 +61,8 @@ Version 0.4.8 (December 7, 2023)
   - Fix ASCII Art formatting: replaced ` with ' to resolve rendering issues and added space above the first K to align tops of letters
 Version 0.4.9 (September 5, 2025)
   - Add "Server 2025" to supported OS list.  NOTE: There is no change to PowerShell version or AD cmdlets at this time, so no additional testing was performed.
+Version 0.5.0 (September 8, 2026)
+  - Write the DateTime timestamp with -Format o (ISO 8601, invariant culture) rather than -Format g, which rendered the host locale's short date and left the day and month order ambiguous.
 #>
 
 <#
@@ -139,7 +141,7 @@ Clear-Host
 
 #Requires -RunAsAdministrator
 
-$KPWINVERSION="0.4.9"
+$KPWINVERSION="0.5.0"
 $hn = hostname.exe
 #Width to use for the outfile / setting high to avoid line truncation "..."
 $OutWidth=512
@@ -417,7 +419,7 @@ Write-Host "
 
 $section="DateTime"
     header -text $section
-    $command={ Get-Date -Format g }
+    $command={ Get-Date -Format o }
         Invoke-MyCommand -section $section -command $command
 footer -text $section
 

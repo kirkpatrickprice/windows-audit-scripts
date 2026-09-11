@@ -1,6 +1,6 @@
 Script_Init:: ###[BEGIN]
-Script_Init:: ###Processing Command:  Get-Date -Format g 
-Script_Init::7/28/2025 8:23 PM
+Script_Init:: ###Processing Command:  Get-Date -Format o 
+Script_Init::2025-07-28T20:23:00.0000000-04:00
 Script_Init:: ###System type is detected as Server2022.
 Script_Init:: ###[END]
 AD_DomainList:: ###[BEGIN]
